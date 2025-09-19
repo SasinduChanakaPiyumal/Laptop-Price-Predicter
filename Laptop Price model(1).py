@@ -6,10 +6,19 @@
 
 import pandas as pd
 import numpy as np
+import json
+import hashlib
+import subprocess
+from datetime import datetime
+from pathlib import Path
+import joblib
 
 
 # In[2]:
 
+# Create artifacts directory
+artifacts_dir = Path("artifacts/baseline")
+artifacts_dir.mkdir(parents=True, exist_ok=True)
 
 dataset = pd.read_csv("laptop_price.csv",encoding = 'latin-1')
 
@@ -253,7 +262,7 @@ y = dataset['Price_euros']
 # In[50]:
 
 
-pip install scikit-learn
+# pip install scikit-learn  # Removed - should be handled by environment
 
 
 # In[51]:
@@ -315,9 +324,9 @@ best_model
 
 # In[59]:
 
-
-best_model.score(x_test,y_test)
-
+# Get R² score and save artifacts
+r2_score = best_model.score(x_test,y_test)
+print(f"Test R² score: {r2_score}")
 
 # In[60]:
 
@@ -327,10 +336,46 @@ x_train.columns
 
 # In[68]:
 
+# Save model using joblib (replacing pickle)
+model_path = artifacts_dir / "model.joblib"
+joblib.dump(best_model, model_path)
+print(f"Model saved to: {model_path}")
 
-import pickle
-with open('predictor.pickle','wb') as file:
-    pickle.dump(best_model,file)
+# Save metrics
+metrics = {"r2": round(r2_score, 4)}
+metrics_path = artifacts_dir / "metrics.json"
+with open(metrics_path, 'w') as f:
+    json.dump(metrics, f, indent=2)
+print(f"Metrics saved to: {metrics_path}")
+
+# Generate manifest
+# Compute SHA-256 of CSV file
+csv_path = Path("laptop_price.csv")
+with open(csv_path, 'rb') as f:
+    csv_content = f.read()
+    dataset_hash = hashlib.sha256(csv_content).hexdigest()
+
+# Get git commit (short SHA)
+try:
+    git_commit = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode().strip()
+except:
+    git_commit = "unknown"  # fallback if not in git repo
+
+# Current UTC timestamp
+timestamp = datetime.utcnow().isoformat() + 'Z'
+
+manifest = {
+    "dataset_sha256": dataset_hash,
+    "created_at": timestamp,
+    "script_commit": git_commit
+}
+
+manifest_path = artifacts_dir / "manifest.json"
+with open(manifest_path, 'w') as f:
+    json.dump(manifest, f, indent=2)
+print(f"Manifest saved to: {manifest_path}")
+
+print("\nBaseline artifacts generated successfully!")
 
 
 # In[66]:
