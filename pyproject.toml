@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "laptop-price-prediction"
+version = "0.1.0"
+description = "Laptop price prediction model"
+authors = ["Your Name <your.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.0"
+numpy = "^1.24"
+
+[tool.poetry.group.dev.dependencies]
+black = ">=23"
+isort = ">=5.12"
+flake8 = ">=6"
+pre-commit = ">=3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
