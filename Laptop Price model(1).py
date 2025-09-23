@@ -145,7 +145,7 @@ dataset['Cpu'].value_counts()
 # In[23]:
 
 
-dataset['Cpu_name']= dataset['Cpu'].apply(lambda x:" ".join(x.split()[0:3]))
+dataset['Cpu_name']= dataset['Cpu'].apply(lambda x: " ".join(x.split()[0:3]) if len(x.split()) >= 3 else " ".join(x.split()) if len(x.split()) > 0 else 'Unknown')
 
 
 # In[24]:
@@ -161,7 +161,9 @@ def set_processor(name):
     if name == 'Intel Core i7' or name == 'Intel Core i5' or name == 'Intel Core i3':
         return name
     else:
-        if name.split()[0] == 'AMD':
+        # Handle empty strings and potential IndexErrors
+        name_parts = name.split()
+        if len(name_parts) > 0 and name_parts[0] == 'AMD':
             return 'AMD'
         else:
             return 'Other'
@@ -177,7 +179,7 @@ dataset['Cpu_name'].value_counts()
 # In[27]:
 
 
-dataset['Gpu_name']= dataset['Gpu'].apply(lambda x:" ".join(x.split()[0:1]))
+dataset['Gpu_name']= dataset['Gpu'].apply(lambda x: " ".join(x.split()[0:1]) if len(x.split()) > 0 else 'Unknown')
 
 
 # In[30]:
@@ -253,7 +255,7 @@ y = dataset['Price_euros']
 # In[50]:
 
 
-pip install scikit-learn
+# pip install scikit-learn  # This should be run in shell, not in Python code
 
 
 # In[51]:
