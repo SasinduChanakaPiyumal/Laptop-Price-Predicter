@@ -6,6 +6,7 @@
 
 import pandas as pd
 import numpy as np
+from laptop_price_model import add_company, set_processor, set_os, model_acc, preprocess_data
 
 
 # In[2]:
@@ -97,11 +98,7 @@ dataset['Company'].value_counts()
 # In[16]:
 
 
-def add_company(inpt):
-    if inpt == 'Samsung'or inpt == 'Razer' or inpt == 'Mediacom' or inpt == 'Microsoft' or inpt == 'Xiaomi' or inpt == 'Vero' or inpt == 'Chuwi' or inpt == 'Google' or inpt == 'Fujitsu' or inpt == 'LG' or inpt == 'Huawei':
-        return 'Other'
-    else:
-        return inpt
+# Use the refactored add_company function from the module
 dataset['Company'] = dataset['Company'].apply(add_company)
 
 
@@ -157,14 +154,7 @@ dataset['Cpu_name'].value_counts()
 # In[25]:
 
 
-def set_processor(name):
-    if name == 'Intel Core i7' or name == 'Intel Core i5' or name == 'Intel Core i3':
-        return name
-    else:
-        if name.split()[0] == 'AMD':
-            return 'AMD'
-        else:
-            return 'Other'
+# Use the refactored set_processor function from the module
 dataset['Cpu_name'] = dataset['Cpu_name'].apply(set_processor)
 
 
@@ -207,15 +197,7 @@ dataset['OpSys'].value_counts()
 # In[34]:
 
 
-def set_os(inpt):
-    if inpt == 'Windows 10' or inpt == 'Windows 7' or inpt == 'Windows 10 S':
-        return 'Windows'
-    elif inpt == 'macOS' or inpt == 'Mac OS X':
-        return 'Mac'
-    elif inpt == 'Linux':
-        return inpt
-    else:
-        return 'Other'
+# Use the refactored set_os function from the module
 dataset['OpSys']= dataset['OpSys'].apply(set_os)
 
 
@@ -272,10 +254,12 @@ x_train.shape,x_test.shape
 # In[54]:
 
 
-def model_acc(model):
-    model.fit(x_train,y_train)
-    acc = model.score(x_test, y_test)
+# Use the refactored model_acc function from the module
+def print_model_acc(model):
+    """Wrapper to maintain the original print behavior"""
+    acc = model_acc(model, x_train, y_train, x_test, y_test)
     print(str(model)+'-->'+str(acc))
+    return acc
 
 
 # In[57]:
@@ -283,19 +267,19 @@ def model_acc(model):
 
 from sklearn.linear_model import LinearRegression
 lr = LinearRegression()
-model_acc(lr)
+print_model_acc(lr)
 
 from sklearn.linear_model import Lasso
 lasso = Lasso()
-model_acc(lasso)
+print_model_acc(lasso)
 
 from sklearn.tree import DecisionTreeRegressor
 dt = DecisionTreeRegressor()
-model_acc(dt)
+print_model_acc(dt)
 
 from sklearn.ensemble import RandomForestRegressor
 rf = RandomForestRegressor()
-model_acc(rf)
+print_model_acc(rf)
 
 
 # In[58]:
