@@ -253,9 +253,6 @@ y = dataset['Price_euros']
 # In[50]:
 
 
-pip install scikit-learn
-
-
 # In[51]:
 
 
