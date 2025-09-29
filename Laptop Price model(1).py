@@ -253,7 +253,7 @@ y = dataset['Price_euros']
 # In[50]:
 
 
-pip install scikit-learn
+# pip install scikit-learn  # This should be run in terminal/command line, not in Python script
 
 
 # In[51]:
