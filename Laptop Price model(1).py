@@ -47,7 +47,7 @@ dataset.isnull().sum()
 # In[8]:
 
 
-dataset['Ram']=dataset['Ram'].str.replace('GB','').astype('int32')
+dataset['Ram']=dataset['Ram'].str.replace('GB','', regex=False).astype('int32')
 
 
 # In[9]:
@@ -59,7 +59,7 @@ dataset.head()
 # In[10]:
 
 
-dataset['Weight']=dataset['Weight'].str.replace('kg','').astype('float64')
+dataset['Weight']=dataset['Weight'].str.replace('kg','', regex=False).astype('float64')
 
 
 # In[11]:
