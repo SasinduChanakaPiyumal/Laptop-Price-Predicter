@@ -4,6 +4,7 @@
 # In[1]:
 
 
+from typing import Any, Union
 import pandas as pd
 import numpy as np
 
@@ -11,7 +12,7 @@ import numpy as np
 # In[2]:
 
 
-dataset = pd.read_csv("laptop_price.csv",encoding = 'latin-1')
+dataset: pd.DataFrame = pd.read_csv("laptop_price.csv", encoding='latin-1')
 
 
 # In[3]:
@@ -71,15 +72,15 @@ dataset.head(2)
 # In[12]:
 
 
-non_numeric_columns = dataset.select_dtypes(exclude=['number']).columns
+non_numeric_columns: pd.Index = dataset.select_dtypes(exclude=['number']).columns
 print(non_numeric_columns)
 
 
 # In[13]:
 
 
-numeric_dataset = dataset.drop(columns=non_numeric_columns)
-correlation = numeric_dataset.corr()['Price_euros']
+numeric_dataset: pd.DataFrame = dataset.drop(columns=non_numeric_columns)
+correlation: pd.Series = numeric_dataset.corr()['Price_euros']
 
 
 # In[14]:
@@ -97,7 +98,7 @@ dataset['Company'].value_counts()
 # In[16]:
 
 
-def add_company(inpt):
+def add_company(inpt: str) -> str:
     if inpt == 'Samsung'or inpt == 'Razer' or inpt == 'Mediacom' or inpt == 'Microsoft' or inpt == 'Xiaomi' or inpt == 'Vero' or inpt == 'Chuwi' or inpt == 'Google' or inpt == 'Fujitsu' or inpt == 'LG' or inpt == 'Huawei':
         return 'Other'
     else:
@@ -157,7 +158,7 @@ dataset['Cpu_name'].value_counts()
 # In[25]:
 
 
-def set_processor(name):
+def set_processor(name: str) -> str:
     if name == 'Intel Core i7' or name == 'Intel Core i5' or name == 'Intel Core i3':
         return name
     else:
@@ -207,7 +208,7 @@ dataset['OpSys'].value_counts()
 # In[34]:
 
 
-def set_os(inpt):
+def set_os(inpt: str) -> str:
     if inpt == 'Windows 10' or inpt == 'Windows 7' or inpt == 'Windows 10 S':
         return 'Windows'
     elif inpt == 'macOS' or inpt == 'Mac OS X':
@@ -246,8 +247,8 @@ dataset.head()
 # In[41]:
 
 
-x = dataset.drop('Price_euros',axis=1)
-y = dataset['Price_euros']
+x: pd.DataFrame = dataset.drop('Price_euros', axis=1)
+y: pd.Series = dataset['Price_euros']
 
 
 # In[50]:
@@ -260,7 +261,11 @@ pip install scikit-learn
 
 
 from sklearn.model_selection import train_test_split
-x_train,x_test,y_train,y_test = train_test_split(x,y,test_size = 0.25)
+x_train: pd.DataFrame
+x_test: pd.DataFrame
+y_train: pd.Series
+y_test: pd.Series
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25)
 
 
 # In[53]:
@@ -272,10 +277,10 @@ x_train.shape,x_test.shape
 # In[54]:
 
 
-def model_acc(model):
-    model.fit(x_train,y_train)
-    acc = model.score(x_test, y_test)
-    print(str(model)+'-->'+str(acc))
+def model_acc(model: Any) -> None:
+    model.fit(x_train, y_train)
+    acc: float = model.score(x_test, y_test)
+    print(str(model) + '-->' + str(acc))
 
 
 # In[57]:
