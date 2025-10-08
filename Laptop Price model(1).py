@@ -326,11 +326,18 @@ x_train.columns
 
 
 # In[68]:
+# SECURITY: Using joblib instead of pickle for model serialization
+# joblib is the recommended way to serialize scikit-learn models
+# WARNING: Never load models from untrusted sources - they could contain malicious code
 
 
-import pickle
-with open('predictor.pickle','wb') as file:
-    pickle.dump(best_model,file)
+import joblib
+# Save model using joblib (more secure and efficient for sklearn models)
+joblib.dump(best_model, 'predictor.joblib')
+
+# To load the model later, use:
+# loaded_model = joblib.load('predictor.joblib')
+# IMPORTANT: Only load models from trusted sources!
 
 
 # In[66]:
