@@ -328,9 +328,10 @@ x_train.columns
 # In[68]:
 
 
-import pickle
-with open('predictor.pickle','wb') as file:
-    pickle.dump(best_model,file)
+import joblib
+# Using joblib instead of pickle for better security and performance
+# joblib is recommended for scikit-learn models and is safer than pickle
+joblib.dump(best_model, 'predictor.joblib')
 
 
 # In[66]:
