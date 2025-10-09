@@ -98,7 +98,7 @@ dataset['Company'].value_counts()
 
 
 def add_company(inpt):
-    if inpt == 'Samsung'or inpt == 'Razer' or inpt == 'Mediacom' or inpt == 'Microsoft' or inpt == 'Xiaomi' or inpt == 'Vero' or inpt == 'Chuwi' or inpt == 'Google' or inpt == 'Fujitsu' or inpt == 'LG' or inpt == 'Huawei':
+    if inpt == 'Samsung' or inpt == 'Razer' or inpt == 'Mediacom' or inpt == 'Microsoft' or inpt == 'Xiaomi' or inpt == 'Vero' or inpt == 'Chuwi' or inpt == 'Google' or inpt == 'Fujitsu' or inpt == 'LG' or inpt == 'Huawei':
         return 'Other'
     else:
         return inpt
@@ -296,7 +296,7 @@ if 'Total_Pixels' in x.columns and 'Inches' in x.columns:
 # In[50]:
 
 
-pip install scikit-learn
+# pip install scikit-learn  # This should be run in terminal, not in Python script
 
 
 # In[51]:
