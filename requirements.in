@@ -1,0 +1,9 @@
+# Core scientific computing dependencies
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Machine learning framework
+scikit-learn>=1.3.0
+
+# Advanced gradient boosting (optional but used in code)
+xgboost>=2.0.0
