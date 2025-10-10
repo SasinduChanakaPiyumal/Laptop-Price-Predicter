@@ -136,9 +136,11 @@ dataset['ScreenResolution'].value_counts()
 dataset['Touchscreen'] = dataset['ScreenResolution'].apply(lambda x:1 if 'Touchscreen' in x else 0)
 dataset['IPS'] = dataset['ScreenResolution'].apply(lambda x:1 if 'IPS' in x else 0)
 
-# Extract actual screen resolution (width x height)
+# PERFORMANCE OPTIMIZATION: Extract actual screen resolution (width x height)
+# Previously this function was called 3 times per row, now called once
+import re
+
 def extract_resolution(res_string):
-    import re
     # Find pattern like "1920x1080" or "3840x2160"
     match = re.search(r'(\d+)x(\d+)', res_string)
     if match:
@@ -147,9 +149,12 @@ def extract_resolution(res_string):
         return width, height, width * height  # width, height, total pixels
     return 1366, 768, 1366*768  # default resolution if not found
 
-dataset['Screen_Width'] = dataset['ScreenResolution'].apply(lambda x: extract_resolution(x)[0])
-dataset['Screen_Height'] = dataset['ScreenResolution'].apply(lambda x: extract_resolution(x)[1])
-dataset['Total_Pixels'] = dataset['ScreenResolution'].apply(lambda x: extract_resolution(x)[2])
+# OPTIMIZED: Call extract_resolution once per row instead of 3 times
+# This reduces regex operations from 3N to N (3x speedup for this section)
+resolution_data = dataset['ScreenResolution'].apply(extract_resolution)
+dataset['Screen_Width'] = resolution_data.apply(lambda x: x[0])
+dataset['Screen_Height'] = resolution_data.apply(lambda x: x[1])
+dataset['Total_Pixels'] = resolution_data.apply(lambda x: x[2])
 
 # Calculate PPI (Pixels Per Inch) - important quality metric
 dataset['PPI'] = np.sqrt(dataset['Total_Pixels']) / dataset['Inches']
