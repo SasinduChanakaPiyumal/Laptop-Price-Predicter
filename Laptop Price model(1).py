@@ -180,7 +180,8 @@ def set_processor(name):
     if name == 'Intel Core i7' or name == 'Intel Core i5' or name == 'Intel Core i3':
         return name
     else:
-        if name.split()[0] == 'AMD':
+        split_name = name.split()
+        if split_name and split_name[0] == 'AMD':
             return 'AMD'
         else:
             return 'Other'
