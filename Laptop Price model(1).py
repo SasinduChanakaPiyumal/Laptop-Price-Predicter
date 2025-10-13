@@ -571,6 +571,10 @@ except ImportError:
 from sklearn.model_selection import RandomizedSearchCV
 from scipy.stats import randint, uniform
 
+# Cross-validation folds configuration
+# Adjust cv_folds based on dataset size and computational resources
+cv_folds = 5
+
 # IMPROVEMENT: Enhanced hyperparameter tuning for Random Forest
 print("\n" + "="*60)
 print("HYPERPARAMETER TUNING - Random Forest")
@@ -591,7 +595,7 @@ grid_obj = RandomizedSearchCV(
     estimator=RandomForestRegressor(random_state=42, n_jobs=-1),
     param_distributions=rf_parameters,
     n_iter=60,  # Increased from 50 to 60 iterations
-    cv=5,
+    cv=cv_folds,
     scoring='r2',
     random_state=42,
     n_jobs=-1,  # Use all CPU cores
@@ -631,7 +635,7 @@ gb_search = RandomizedSearchCV(
     estimator=GradientBoostingRegressor(random_state=42),
     param_distributions=gb_parameters,
     n_iter=60,  # Increased from 50 to 60
-    cv=5,
+    cv=cv_folds,
     scoring='r2',
     random_state=42,
     n_jobs=-1,
@@ -674,7 +678,7 @@ try:
         estimator=lgb.LGBMRegressor(random_state=42, verbose=-1),
         param_distributions=lgb_parameters,
         n_iter=60,
-        cv=5,
+        cv=cv_folds,
         scoring='r2',
         random_state=42,
         n_jobs=-1,
