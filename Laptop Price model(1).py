@@ -226,90 +226,31 @@ dataset['OpSys'].value_counts()
 # In[34]:
 
 
-def set_os(inpt):
-    if inpt == 'Windows 10' or inpt == 'Windows 7' or inpt == 'Windows 10 S':
-        return 'Windows'
-    elif inpt == 'macOS' or inpt == 'Mac OS X':
-        return 'Mac'
-    elif inpt == 'Linux':
-        return inpt
-    else:
-        return 'Other'
+import json
+
+def load_config():
+    """Load configuration from model_config.json file."""
+    with open('model_config.json', 'r') as f:
+        return json.load(f)
+
+def set_os(inpt, os_mapping=None):
+    if os_mapping is None:
+        config = load_config()
+        os_mapping = config['os_mapping']
+    
+    for category, os_list in os_mapping.items():
+        if inpt in os_list:
+            return category
+    
+    return 'Other'
 dataset['OpSys']= dataset['OpSys'].apply(set_os)
-
-
-# In[34a]:
-
-
-# IMPROVEMENT: Enhanced Memory/Storage Feature Engineering
-# Extract storage type and capacity from Memory column
-print("Memory/Storage Feature Engineering...")
-
-def extract_storage_features(memory_string):
-    """
-    Extract storage type and total capacity from memory string.
-    Examples: "256GB SSD", "1TB HDD", "128GB SSD +  1TB HDD", "256GB Flash Storage"
-    """
-    memory_string = str(memory_string)
-    
-    # Initialize features
-    has_ssd = 0
-    has_hdd = 0
-    has_flash = 0
-    has_hybrid = 0
-    total_capacity_gb = 0
-    
-    # Check for storage types
-    if 'SSD' in memory_string:
-        has_ssd = 1
-    if 'HDD' in memory_string:
-        has_hdd = 1
-    if 'Flash' in memory_string:
-        has_flash = 1
-    if 'Hybrid' in memory_string:
-        has_hybrid = 1
-    
-    # Extract capacities
-    import re
-    
-    # Find all capacity values with TB or GB
-    tb_matches = re.findall(r'(\d+(?:\.\d+)?)\s*TB', memory_string)
-    gb_matches = re.findall(r'(\d+(?:\.\d+)?)\s*GB', memory_string)
-    
-    # Convert to GB and sum
-    for tb in tb_matches:
-        total_capacity_gb += float(tb) * 1024
-    for gb in gb_matches:
-        total_capacity_gb += float(gb)
-    
-    return has_ssd, has_hdd, has_flash, has_hybrid, total_capacity_gb
-
-# Apply storage feature extraction
-storage_features = dataset['Memory'].apply(extract_storage_features)
-dataset['Has_SSD'] = storage_features.apply(lambda x: x[0])
-dataset['Has_HDD'] = storage_features.apply(lambda x: x[1])
-dataset['Has_Flash'] = storage_features.apply(lambda x: x[2])
-dataset['Has_Hybrid'] = storage_features.apply(lambda x: x[3])
-dataset['Storage_Capacity_GB'] = storage_features.apply(lambda x: x[4])
-
-# Create derived storage features
-dataset['Storage_Type_Score'] = (
-    dataset['Has_SSD'] * 3 +      # SSD is premium
-    dataset['Has_Flash'] * 2.5 +  # Flash is also premium
-    dataset['Has_Hybrid'] * 2 +   # Hybrid is mid-range
-    dataset['Has_HDD'] * 1        # HDD is budget
-)
-
-print(f"Storage feature engineering complete.")
-print(f"Sample storage features:")
-print(dataset[['Memory', 'Has_SSD', 'Has_HDD', 'Storage_Capacity_GB', 'Storage_Type_Score']].head())
 
 
 # In[37]:
 
 
-# Keep screen size and drop only redundant columns (now also drop Memory after feature extraction)
-dataset=dataset.drop(columns=['laptop_ID','Product','ScreenResolution','Cpu','Gpu','Memory'])
+# Keep screen size and drop only redundant columns
+dataset=dataset.drop(columns=['laptop_ID','Product','ScreenResolution','Cpu','Gpu'])
 
 
 # In[38]:
@@ -359,35 +300,6 @@ if 'Ram' in x.columns:
 if 'Total_Pixels' in x.columns and 'Inches' in x.columns:
     x['Screen_Quality'] = x['Total_Pixels'] / 1000000 * x['Inches']  # Normalized quality metric
 
-# IMPROVEMENT: Additional advanced interaction features
-print("\nCreating advanced interaction features...")
-
-# Storage capacity * SSD indicator (SSD with high capacity is premium)
-if 'Storage_Capacity_GB' in x.columns and 'Has_SSD' in x.columns:
-    x['Premium_Storage'] = x['Storage_Capacity_GB'] * (x['Has_SSD'] + 1) / 1000  # Normalized
-
-# RAM * Storage Type Score (high RAM + fast storage = workstation/gaming)
-if 'Ram' in x.columns and 'Storage_Type_Score' in x.columns:
-    x['RAM_Storage_Quality'] = x['Ram'] * x['Storage_Type_Score']
-
-# Screen quality * Storage quality (premium display + premium storage)
-if 'PPI' in x.columns and 'Storage_Type_Score' in x.columns:
-    x['Display_Storage_Premium'] = x['PPI'] * x['Storage_Type_Score']
-
-# Weight to size ratio (portability factor)
-if 'Weight' in x.columns and 'Inches' in x.columns:
-    x['Weight_Size_Ratio'] = x['Weight'] / x['Inches']
-
-# Total pixels per RAM (graphics capability estimation)
-if 'Total_Pixels' in x.columns and 'Ram' in x.columns:
-    x['Pixels_Per_RAM'] = x['Total_Pixels'] / (x['Ram'] * 1000000)
-
-# Storage per inch (how much storage per screen size)
-if 'Storage_Capacity_GB' in x.columns and 'Inches' in x.columns:
-    x['Storage_Per_Inch'] = x['Storage_Capacity_GB'] / x['Inches']
-
-print(f"Advanced interaction features created. Total features: {x.shape[1]}")
-
 
 # In[50]:
 
@@ -403,62 +315,10 @@ from sklearn.model_selection import train_test_split
 x_train,x_test,y_train,y_test = train_test_split(x,y,test_size = 0.25, random_state=42)
 
 
-# In[52]:
-
-
-# IMPROVEMENT: Add feature scaling for linear models
-from sklearn.preprocessing import StandardScaler
-
-# Create scaled versions for linear models
-scaler = StandardScaler()
-x_train_scaled = scaler.fit_transform(x_train)
-x_test_scaled = scaler.transform(x_test)
-
-# Convert back to DataFrame for consistency
-x_train_scaled_df = pd.DataFrame(x_train_scaled, columns=x_train.columns, index=x_train.index)
-x_test_scaled_df = pd.DataFrame(x_test_scaled, columns=x_test.columns, index=x_test.index)
-
-print(f"\nFeature scaling complete. Shape: {x_train_scaled_df.shape}")
-
-
 # In[53]:
 
 
 x_train.shape,x_test.shape
-
-
-# In[53a]:
-
-
-# IMPROVEMENT: Basic outlier detection and reporting
-print("\n" + "="*60)
-print("OUTLIER DETECTION")
-print("="*60)
-
-from scipy import stats
-
-# Detect outliers in target variable using Z-score
-z_scores_target = np.abs(stats.zscore(y_train))
-outliers_target = np.where(z_scores_target > 3)[0]
-
-print(f"\nTarget variable (Price) outliers (Z-score > 3): {len(outliers_target)}")
-if len(outliers_target) > 0:
-    print(f"Outlier prices: {y_train.iloc[outliers_target].values[:5]} (showing first 5)")
-
-# Detect outliers in key features
-key_numeric_features = ['Ram', 'Weight', 'Inches', 'Total_Pixels', 'Storage_Capacity_GB']
-outlier_counts = {}
-
-for feature in key_numeric_features:
-    if feature in x_train.columns:
-        z_scores = np.abs(stats.zscore(x_train[feature]))
-        outliers = np.where(z_scores > 3)[0]
-        outlier_counts[feature] = len(outliers)
-        if len(outliers) > 0:
-            print(f"{feature} outliers: {len(outliers)}")
-
-print(f"\nNote: Outliers are kept in the dataset as they may represent legitimate premium/budget laptops.")
-print("Tree-based models handle outliers well without removal.")
 
 
 # In[54]:
@@ -467,27 +327,13 @@ print("Tree-based models handle outliers well without removal.")
 # Improved evaluation function with multiple metrics
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import cross_val_score
+import numpy as np
 
-def model_acc(model, model_name="Model", use_scaled=False):
-    """
-    Improved model evaluation with multiple metrics.
+def model_acc(model, model_name="Model"):
+    model.fit(x_train,y_train)
     
-    Args:
-        model: sklearn model to evaluate
-        model_name: Name for display
-        use_scaled: If True, use scaled data (for linear models)
-    """
-    # Choose data based on scaling requirement
-    if use_scaled:
-        X_train = x_train_scaled_df
-        X_test = x_test_scaled_df
-    else:
-        X_train = x_train
-        X_test = x_test
-    
-    model.fit(X_train, y_train)
     # Test set predictions
-    y_pred = model.predict(X_test)
+    y_pred = model.predict(x_test)
     
     # Calculate multiple metrics
     r2 = r2_score(y_test, y_pred)
@@ -495,7 +341,7 @@ def model_acc(model, model_name="Model", use_scaled=False):
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     
     # Cross-validation score (5-fold)
-    cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='r2')
+    cv_scores = cross_val_score(model, x_train, y_train, cv=5, scoring='r2')
     cv_mean = cv_scores.mean()
     cv_std = cv_scores.std()
     
@@ -511,55 +357,31 @@ def model_acc(model, model_name="Model", use_scaled=False):
 # In[57]:
 
 
-print("\n" + "="*60)
-print("MODEL COMPARISON - BASELINE MODELS")
-print("="*60)
-
-from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-
-# Linear models (use scaled data)
-print("\n--- LINEAR MODELS (with scaling) ---")
+from sklearn.linear_model import LinearRegression
 lr = LinearRegression()
-model_acc(lr, "Linear Regression", use_scaled=True)
+model_acc(lr, "Linear Regression")
 
-# IMPROVEMENT: Add Ridge Regression (L2 regularization)
-ridge = Ridge(alpha=1.0, random_state=42)
-model_acc(ridge, "Ridge Regression", use_scaled=True)
+from sklearn.linear_model import Lasso
+lasso = Lasso(random_state=42)
+model_acc(lasso, "Lasso Regression")
 
-lasso = Lasso(alpha=1.0, random_state=42)
-model_acc(lasso, "Lasso Regression (L1)", use_scaled=True)
-
-# IMPROVEMENT: Add ElasticNet (L1 + L2 regularization)
-elastic = ElasticNet(alpha=1.0, l1_ratio=0.5, random_state=42)
-model_acc(elastic, "ElasticNet (L1+L2)", use_scaled=True)
-
-# Tree-based models (don't need scaling)
-print("\n--- TREE-BASED MODELS (no scaling needed) ---")
+from sklearn.tree import DecisionTreeRegressor
 dt = DecisionTreeRegressor(random_state=42)
 model_acc(dt, "Decision Tree")
 
-rf = RandomForestRegressor(n_estimators=100, random_state=42)
+from sklearn.ensemble import RandomForestRegressor
+rf = RandomForestRegressor(random_state=42)
 model_acc(rf, "Random Forest (default)")
 
-# Gradient Boosting models
-print("\n--- GRADIENT BOOSTING MODELS ---")
-gb = GradientBoostingRegressor(n_estimators=100, random_state=42)
+# Add Gradient Boosting models for better performance
+from sklearn.ensemble import GradientBoostingRegressor
+gb = GradientBoostingRegressor(random_state=42)
 model_acc(gb, "Gradient Boosting")
 
-# IMPROVEMENT: Add LightGBM (faster gradient boosting)
-try:
-    import lightgbm as lgb
-    lgb_model = lgb.LGBMRegressor(n_estimators=100, random_state=42, verbose=-1)
-    model_acc(lgb_model, "LightGBM")
-except ImportError:
-    print("\nLightGBM not installed. Install with: pip install lightgbm")
-
-# Add XGBoost if available
+# Add XGBoost if available (often performs best)
 try:
     import xgboost as xgb
-    xgb_model = xgb.XGBRegressor(n_estimators=100, random_state=42, objective='reg:squarederror')
+    xgb_model = xgb.XGBRegressor(random_state=42, objective='reg:squarederror')
     model_acc(xgb_model, "XGBoost")
 except ImportError:
     print("\nXGBoost not installed. Install with: pip install xgboost")
@@ -568,29 +390,28 @@ except ImportError:
 # In[58]:
 
 
-from sklearn.model_selection import RandomizedSearchCV
-from scipy.stats import randint, uniform
+from sklearn.model_selection import GridSearchCV
 
-# IMPROVEMENT: Enhanced hyperparameter tuning for Random Forest
+# Comprehensive hyperparameter tuning for Random Forest
 print("\n" + "="*60)
 print("HYPERPARAMETER TUNING - Random Forest")
 print("="*60)
 
-# Expanded parameter space with continuous distributions
 rf_parameters = {
-    'n_estimators': [150, 200, 300, 400],  # More estimators for better performance
-    'max_depth': [15, 20, 25, 30, None],   # Better depth range
-    'min_samples_split': [2, 4, 6, 8],     # Finer granularity
-    'min_samples_leaf': [1, 2, 3, 4],      # More options
-    'max_features': ['sqrt', 'log2', 0.3, 0.5],  # Include float values
-    'bootstrap': [True, False],
-    'min_impurity_decrease': [0.0, 0.001, 0.01]  # NEW: Regularization parameter
+    'n_estimators': [100, 200, 300],
+    'max_depth': [10, 20, 30, None],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4],
+    'max_features': ['sqrt', 'log2', None],
+    'bootstrap': [True, False]
 }
 
+# Use RandomizedSearchCV for efficiency with many parameters
+from sklearn.model_selection import RandomizedSearchCV
 grid_obj = RandomizedSearchCV(
-    estimator=RandomForestRegressor(random_state=42, n_jobs=-1),
+    estimator=RandomForestRegressor(random_state=42),
     param_distributions=rf_parameters,
-    n_iter=60,  # Increased from 50 to 60 iterations
+    n_iter=50,  # Test 50 random combinations
     cv=5,
     scoring='r2',
     random_state=42,
@@ -598,7 +419,7 @@ grid_obj = RandomizedSearchCV(
     verbose=1
 )
 
-print("\nTraining Random Forest with RandomizedSearchCV (60 iterations)...")
+print("\nTraining Random Forest with RandomizedSearchCV...")
 grid_fit = grid_obj.fit(x_train, y_train)
 
 best_model = grid_fit.best_estimator_
@@ -610,27 +431,25 @@ best_model
 # In[58a]:
 
 
-# IMPROVEMENT: Enhanced Gradient Boosting tuning
+# Also tune Gradient Boosting
 print("\n" + "="*60)
 print("HYPERPARAMETER TUNING - Gradient Boosting")
 print("="*60)
 
-# Improved parameter space based on best practices
 gb_parameters = {
-    'n_estimators': [150, 200, 300, 400],     # More estimators
-    'learning_rate': [0.01, 0.03, 0.05, 0.075, 0.1, 0.15],  # Finer learning rate grid
-    'max_depth': [3, 4, 5, 6, 7],             # Optimal range for GB
-    'min_samples_split': [2, 4, 6, 8, 10],    # More options
-    'min_samples_leaf': [1, 2, 3, 4],         # Finer granularity
-    'subsample': [0.7, 0.8, 0.85, 0.9, 1.0],  # More subsample options
-    'max_features': ['sqrt', 'log2', 0.3, 0.5, 0.7, None],  # Include float values
-    'min_impurity_decrease': [0.0, 0.001, 0.01]  # NEW: Regularization
+    'n_estimators': [100, 200, 300],
+    'learning_rate': [0.01, 0.05, 0.1, 0.2],
+    'max_depth': [3, 5, 7, 10],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4],
+    'subsample': [0.8, 0.9, 1.0],
+    'max_features': ['sqrt', 'log2', None]
 }
 
 gb_search = RandomizedSearchCV(
     estimator=GradientBoostingRegressor(random_state=42),
     param_distributions=gb_parameters,
-    n_iter=60,  # Increased from 50 to 60
+    n_iter=50,
     cv=5,
     scoring='r2',
     random_state=42,
@@ -638,7 +457,7 @@ gb_search = RandomizedSearchCV(
     verbose=1
 )
 
-print("\nTraining Gradient Boosting with RandomizedSearchCV (60 iterations)...")
+print("\nTraining Gradient Boosting with RandomizedSearchCV...")
 gb_fit = gb_search.fit(x_train, y_train)
 
 best_gb_model = gb_fit.best_estimator_
@@ -649,53 +468,7 @@ print(f"Best CV score: {gb_fit.best_score_:.4f}")
 # In[58b]:
 
 
-# IMPROVEMENT: Add LightGBM hyperparameter tuning
-best_lgb_model = None
-try:
-    import lightgbm as lgb
-    
-    print("\n" + "="*60)
-    print("HYPERPARAMETER TUNING - LightGBM")
-    print("="*60)
-    
-    lgb_parameters = {
-        'n_estimators': [150, 200, 300, 400],
-        'learning_rate': [0.01, 0.03, 0.05, 0.075, 0.1],
-        'max_depth': [3, 5, 7, 10, -1],  # -1 means no limit
-        'num_leaves': [15, 31, 50, 70, 100],  # Important for LightGBM
-        'min_child_samples': [5, 10, 20, 30],
-        'subsample': [0.7, 0.8, 0.9, 1.0],
-        'colsample_bytree': [0.7, 0.8, 0.9, 1.0],
-        'reg_alpha': [0, 0.01, 0.1, 1.0],  # L1 regularization
-        'reg_lambda': [0, 0.01, 0.1, 1.0]  # L2 regularization
-    }
-    
-    lgb_search = RandomizedSearchCV(
-        estimator=lgb.LGBMRegressor(random_state=42, verbose=-1),
-        param_distributions=lgb_parameters,
-        n_iter=60,
-        cv=5,
-        scoring='r2',
-        random_state=42,
-        n_jobs=-1,
-        verbose=1
-    )
-    
-    print("\nTraining LightGBM with RandomizedSearchCV (60 iterations)...")
-    lgb_fit = lgb_search.fit(x_train, y_train)
-    
-    best_lgb_model = lgb_fit.best_estimator_
-    print(f"\nBest parameters: {lgb_fit.best_params_}")
-    print(f"Best CV score: {lgb_fit.best_score_:.4f}")
-    
-except ImportError:
-    print("\nLightGBM not installed. Skipping LightGBM tuning.")
-
-
-# In[58c]:
-
-
-# Compare all best models
+# Compare best models
 print("\n" + "="*60)
 print("FINAL MODEL COMPARISON")
 print("="*60)
@@ -703,38 +476,21 @@ print("="*60)
 rf_r2, rf_mae, rf_rmse, rf_cv = model_acc(best_model, "Best Random Forest")
 gb_r2, gb_mae, gb_rmse, gb_cv = model_acc(best_gb_model, "Best Gradient Boosting")
 
-# Compare with LightGBM if available
-models_dict = {
-    'Random Forest': (best_model, rf_r2),
-    'Gradient Boosting': (best_gb_model, gb_r2)
-}
-
-if best_lgb_model is not None:
-    lgb_r2, lgb_mae, lgb_rmse, lgb_cv = model_acc(best_lgb_model, "Best LightGBM")
-    models_dict['LightGBM'] = (best_lgb_model, lgb_r2)
-
 # Select the best overall model
-best_model_name = max(models_dict, key=lambda k: models_dict[k][1])
-best_overall_model = models_dict[best_model_name][0]
-
-print(f"\n{'*'*60}")
-print(f"WINNER: {best_model_name}")
-print(f"R² Score: {models_dict[best_model_name][1]:.4f}")
-print(f"{'*'*60}")
+if gb_r2 > rf_r2:
+    best_overall_model = best_gb_model
+    print(f"\n{'*'*60}")
+    print("WINNER: Gradient Boosting")
+    print(f"{'*'*60}")
+else:
+    best_overall_model = best_model
+    print(f"\n{'*'*60}")
+    print("WINNER: Random Forest")
+    print(f"{'*'*60}")
 
 
 # In[59]:
 
-
-# IMPROVEMENT SUMMARY:
-# This enhanced version includes the following improvements:
-# 1. Storage/Memory feature engineering (SSD/HDD detection, capacity extraction)
-# 2. Advanced interaction features (RAM-Storage, Display-Storage, Weight-Size ratio, etc.)
-# 3. Feature scaling for linear models
-# 4. Additional models: Ridge, ElasticNet, LightGBM
-# 5. Enhanced hyperparameter tuning with broader parameter ranges (60 iterations)
-# 6. Outlier detection and reporting
-# 7. Comprehensive model comparison across all tuned models
 
 # Feature importance analysis
 print("\n" + "="*60)
