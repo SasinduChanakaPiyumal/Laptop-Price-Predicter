@@ -11,7 +11,38 @@ import numpy as np
 # In[2]:
 
 
-dataset = pd.read_csv("laptop_price.csv",encoding = 'latin-1')
+# Error handling for CSV file reading
+try:
+    dataset = pd.read_csv("laptop_price.csv", encoding='latin-1')
+    print(f"Successfully loaded dataset with {len(dataset)} rows")
+except FileNotFoundError:
+    print("ERROR: The file 'laptop_price.csv' was not found in the current directory.")
+    print("Please ensure the CSV file exists in the same directory as this script.")
+    raise
+except PermissionError:
+    print("ERROR: Permission denied when trying to read 'laptop_price.csv'.")
+    print("Please check file permissions and ensure you have read access.")
+    raise
+except pd.errors.ParserError as e:
+    print(f"ERROR: Failed to parse CSV file: {e}")
+    print("The CSV file may be corrupted or improperly formatted.")
+    raise
+except UnicodeDecodeError as e:
+    print(f"ERROR: Encoding issue with CSV file: {e}")
+    print("Trying alternative encodings...")
+    try:
+        dataset = pd.read_csv("laptop_price.csv", encoding='utf-8')
+        print("Successfully loaded with UTF-8 encoding")
+    except:
+        try:
+            dataset = pd.read_csv("laptop_price.csv", encoding='iso-8859-1')
+            print("Successfully loaded with ISO-8859-1 encoding")
+        except Exception as inner_e:
+            print(f"ERROR: Failed to load file with multiple encodings: {inner_e}")
+            raise
+except Exception as e:
+    print(f"ERROR: Unexpected error while reading CSV file: {e}")
+    raise
 
 
 # In[3]:
@@ -59,7 +90,68 @@ dataset.head()
 # In[10]:
 
 
-dataset['Weight']=dataset['Weight'].str.replace('kg','').astype('float64')
+# Error handling and validation for Weight conversion
+try:
+    # Check for null values first
+    null_count = dataset['Weight'].isnull().sum()
+    if null_count > 0:
+        print(f"WARNING: Found {null_count} null values in Weight column. These will be handled.")
+    
+    # Store original values for error reporting
+    original_weight = dataset['Weight'].copy()
+    
+    # Handle different unit formats (kg, g, lbs, etc.)
+    def convert_weight_to_kg(weight_str):
+        """Convert weight string to float in kg, handling multiple formats."""
+        if pd.isnull(weight_str):
+            return np.nan
+        
+        weight_str = str(weight_str).strip().lower()
+        
+        try:
+            # Handle kg format
+            if 'kg' in weight_str:
+                return float(weight_str.replace('kg', '').strip())
+            # Handle grams
+            elif 'g' in weight_str and 'kg' not in weight_str:
+                return float(weight_str.replace('g', '').strip()) / 1000.0
+            # Handle pounds
+            elif 'lb' in weight_str or 'lbs' in weight_str:
+                weight_val = weight_str.replace('lbs', '').replace('lb', '').strip()
+                return float(weight_val) * 0.453592  # Convert lbs to kg
+            # Try direct float conversion
+            else:
+                return float(weight_str)
+        except (ValueError, AttributeError) as e:
+            print(f"WARNING: Could not convert weight value '{weight_str}': {e}")
+            return np.nan
+    
+    # Apply conversion
+    dataset['Weight'] = dataset['Weight'].apply(convert_weight_to_kg)
+    
+    # Validate conversion results
+    conversion_failures = dataset['Weight'].isnull().sum() - null_count
+    if conversion_failures > 0:
+        print(f"WARNING: {conversion_failures} weight values could not be converted and were set to NaN")
+        # Show some examples of failed conversions
+        failed_indices = dataset[dataset['Weight'].isnull()].index[:5]
+        if len(failed_indices) > 0:
+            print(f"Sample failed values: {original_weight.loc[failed_indices].tolist()}")
+    
+    # Check for unrealistic values
+    if dataset['Weight'].notna().any():
+        min_weight = dataset['Weight'].min()
+        max_weight = dataset['Weight'].max()
+        if min_weight < 0.1 or max_weight > 10:
+            print(f"WARNING: Unusual weight values detected (min: {min_weight:.2f}kg, max: {max_weight:.2f}kg)")
+            print("These may indicate data quality issues.")
+    
+    print(f"Weight conversion completed. Valid values: {dataset['Weight'].notna().sum()}/{len(dataset)}")
+    
+except Exception as e:
+    print(f"ERROR: Failed to convert Weight column: {e}")
+    print("Attempting to preserve original data...")
+    raise
 
 
 # In[11]:
@@ -138,14 +230,60 @@ dataset['IPS'] = dataset['ScreenResolution'].apply(lambda x:1 if 'IPS' in x else
 
 # Extract actual screen resolution (width x height)
 def extract_resolution(res_string):
+    """
+    Extract screen resolution from string with comprehensive error handling.
+    
+    Args:
+        res_string: String containing resolution info (e.g., "1920x1080")
+    
+    Returns:
+        tuple: (width, height, total_pixels)
+    """
     import re
-    # Find pattern like "1920x1080" or "3840x2160"
-    match = re.search(r'(\d+)x(\d+)', res_string)
-    if match:
-        width = int(match.group(1))
-        height = int(match.group(2))
-        return width, height, width * height  # width, height, total pixels
-    return 1366, 768, 1366*768  # default resolution if not found
+    
+    # Default resolution values
+    DEFAULT_WIDTH = 1366
+    DEFAULT_HEIGHT = 768
+    DEFAULT_PIXELS = DEFAULT_WIDTH * DEFAULT_HEIGHT
+    
+    # Handle None or invalid input
+    if res_string is None or not isinstance(res_string, str):
+        print(f"WARNING: Invalid resolution input (None or non-string): {type(res_string)}")
+        return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
+    
+    # Handle empty string
+    if not res_string.strip():
+        print("WARNING: Empty resolution string provided")
+        return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
+    
+    try:
+        # Find pattern like "1920x1080" or "3840x2160"
+        match = re.search(r'(\d+)x(\d+)', res_string)
+        
+        if match:
+            try:
+                width = int(match.group(1))
+                height = int(match.group(2))
+                
+                # Validate reasonable resolution values
+                if width < 640 or width > 7680 or height < 480 or height > 4320:
+                    print(f"WARNING: Unusual resolution detected: {width}x{height}. Using default.")
+                    return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
+                
+                return width, height, width * height
+            except (ValueError, AttributeError) as e:
+                print(f"WARNING: Could not convert resolution values to integers in '{res_string}': {e}")
+                return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
+        else:
+            # No match found, use default silently (common case for non-standard formats)
+            return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
+            
+    except re.error as e:
+        print(f"ERROR: Regex error in extract_resolution for '{res_string}': {e}")
+        return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
+    except Exception as e:
+        print(f"ERROR: Unexpected error in extract_resolution for '{res_string}': {e}")
+        return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
 
 dataset['Screen_Width'] = dataset['ScreenResolution'].apply(lambda x: extract_resolution(x)[0])
 dataset['Screen_Height'] = dataset['ScreenResolution'].apply(lambda x: extract_resolution(x)[1])
@@ -767,11 +905,80 @@ x_train.columns
 
 
 import pickle
-# Save the best overall model (could be RF or GB)
-with open('predictor.pickle','wb') as file:
-    pickle.dump(best_overall_model,file)
+import os
+import tempfile
+
+# Save the best overall model with comprehensive error handling
+pickle_filename = 'predictor.pickle'
+temp_filename = None
+
+try:
+    # Create a temporary file first to avoid corrupting existing file
+    temp_fd, temp_filename = tempfile.mkstemp(suffix='.pickle', dir='.')
     
-print("\nModel saved to predictor.pickle")
+    try:
+        # Write to temporary file
+        with os.fdopen(temp_fd, 'wb') as temp_file:
+            pickle.dump(best_overall_model, temp_file)
+        
+        # If successful, replace the target file
+        # Remove existing file if it exists
+        if os.path.exists(pickle_filename):
+            try:
+                os.remove(pickle_filename)
+            except PermissionError:
+                print(f"ERROR: Cannot remove existing file '{pickle_filename}'. Permission denied.")
+                raise
+        
+        # Rename temp file to target file
+        os.rename(temp_filename, pickle_filename)
+        temp_filename = None  # Mark as successfully moved
+        
+        # Verify the file was written correctly
+        file_size = os.path.getsize(pickle_filename)
+        print(f"\nModel successfully saved to '{pickle_filename}' ({file_size:,} bytes)")
+        
+    except Exception as e:
+        # If anything fails, clean up temp file
+        if temp_filename and os.path.exists(temp_filename):
+            try:
+                os.close(temp_fd)
+            except:
+                pass
+            try:
+                os.remove(temp_filename)
+            except:
+                pass
+        raise
+
+except PermissionError:
+    print(f"ERROR: Permission denied when trying to write to '{pickle_filename}'.")
+    print("Please check that you have write permissions in the current directory.")
+    raise
+except IOError as e:
+    print(f"ERROR: I/O error while writing model file: {e}")
+    print("This could be due to disk space issues or file system problems.")
+    raise
+except OSError as e:
+    print(f"ERROR: OS error while saving model: {e}")
+    if e.errno == 28:  # ENOSPC - No space left on device
+        print("Disk is full. Please free up space and try again.")
+    raise
+except pickle.PicklingError as e:
+    print(f"ERROR: Failed to pickle the model: {e}")
+    print("The model may contain unpicklable objects.")
+    raise
+except Exception as e:
+    print(f"ERROR: Unexpected error while saving model: {e}")
+    raise
+finally:
+    # Clean up temp file if it still exists
+    if temp_filename and os.path.exists(temp_filename):
+        try:
+            os.remove(temp_filename)
+            print(f"Cleaned up temporary file: {temp_filename}")
+        except Exception as cleanup_error:
+            print(f"WARNING: Could not clean up temporary file '{temp_filename}': {cleanup_error}")
 
 
 # In[66]:
