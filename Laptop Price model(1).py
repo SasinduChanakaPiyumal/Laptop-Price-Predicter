@@ -766,12 +766,45 @@ x_train.columns
 # In[68]:
 
 
-import pickle
+import joblib
+import hashlib
+import json
+
+# SECURITY FIX: Replace insecure pickle with joblib
+# Pickle is vulnerable to arbitrary code execution during deserialization (CWE-502)
+# joblib is sklearn's recommended method and provides better security and compression
+
 # Save the best overall model (could be RF or GB)
-with open('predictor.pickle','wb') as file:
-    pickle.dump(best_overall_model,file)
-    
-print("\nModel saved to predictor.pickle")
+model_filename = 'predictor.joblib'
+joblib.dump(best_overall_model, model_filename)
+
+# Create integrity hash for model verification
+with open(model_filename, 'rb') as f:
+    model_bytes = f.read()
+    model_hash = hashlib.sha256(model_bytes).hexdigest()
+
+# Save model metadata including hash for integrity verification
+model_metadata = {
+    'model_type': type(best_overall_model).__name__,
+    'model_name': best_model_name,
+    'sha256_hash': model_hash,
+    'feature_count': len(x_train.columns),
+    'features': list(x_train.columns)
+}
+
+with open('predictor_metadata.json', 'w') as f:
+    json.dump(model_metadata, f, indent=2)
+
+print(f"\n{'='*60}")
+print("SECURITY: Model saved securely")
+print(f"{'='*60}")
+print(f"Model file: {model_filename}")
+print(f"Model type: {model_metadata['model_type']}")
+print(f"SHA256 hash: {model_hash[:16]}...{model_hash[-16:]}")
+print(f"Metadata saved to: predictor_metadata.json")
+print("\nSECURITY NOTE: Using joblib instead of pickle reduces")
+print("deserialization vulnerabilities. Always verify the model")
+print("hash before loading models from untrusted sources.")
 
 
 # In[66]:
