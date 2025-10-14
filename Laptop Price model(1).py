@@ -329,8 +329,6 @@ x_train.columns
 
 
 import joblib
-# Using joblib instead of pickle for better security and performance
-# joblib is recommended for scikit-learn models and is safer than pickle
 joblib.dump(best_model, 'predictor.joblib')
 
 
