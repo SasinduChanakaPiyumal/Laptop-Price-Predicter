@@ -152,7 +152,10 @@ dataset['Screen_Height'] = dataset['ScreenResolution'].apply(lambda x: extract_r
 dataset['Total_Pixels'] = dataset['ScreenResolution'].apply(lambda x: extract_resolution(x)[2])
 
 # Calculate PPI (Pixels Per Inch) - important quality metric
-dataset['PPI'] = np.sqrt(dataset['Total_Pixels']) / dataset['Inches']
+# Fix: Prevent division by zero or invalid values
+dataset['PPI'] = np.where(dataset['Inches'] > 0, 
+                          np.sqrt(dataset['Total_Pixels']) / dataset['Inches'],
+                          0)  # Default to 0 for invalid screen sizes
 
 
 # In[22]:
@@ -376,15 +379,24 @@ if 'PPI' in x.columns and 'Storage_Type_Score' in x.columns:
 
 # Weight to size ratio (portability factor)
 if 'Weight' in x.columns and 'Inches' in x.columns:
-    x['Weight_Size_Ratio'] = x['Weight'] / x['Inches']
+    # Fix: Prevent division by zero
+    x['Weight_Size_Ratio'] = np.where(x['Inches'] > 0, 
+                                       x['Weight'] / x['Inches'],
+                                       0)
 
 # Total pixels per RAM (graphics capability estimation)
 if 'Total_Pixels' in x.columns and 'Ram' in x.columns:
-    x['Pixels_Per_RAM'] = x['Total_Pixels'] / (x['Ram'] * 1000000)
+    # Fix: Prevent division by zero
+    x['Pixels_Per_RAM'] = np.where(x['Ram'] > 0,
+                                    x['Total_Pixels'] / (x['Ram'] * 1000000),
+                                    0)
 
 # Storage per inch (how much storage per screen size)
 if 'Storage_Capacity_GB' in x.columns and 'Inches' in x.columns:
-    x['Storage_Per_Inch'] = x['Storage_Capacity_GB'] / x['Inches']
+    # Fix: Prevent division by zero
+    x['Storage_Per_Inch'] = np.where(x['Inches'] > 0,
+                                      x['Storage_Capacity_GB'] / x['Inches'],
+                                      0)
 
 print(f"Advanced interaction features created. Total features: {x.shape[1]}")
 
