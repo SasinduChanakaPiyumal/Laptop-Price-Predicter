@@ -4,9 +4,29 @@
 # In[1]:
 
 
+# Standard library imports
+import re
+import pickle
+
+# Data manipulation and numerical computing
 import pandas as pd
 import numpy as np
-import re
+from scipy import stats
+from scipy.stats import randint, uniform
+
+# Machine learning - preprocessing and metrics
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
+from sklearn.model_selection import train_test_split, cross_val_score, RandomizedSearchCV
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+# Machine learning - models
+from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+
+# Optional imports for advanced gradient boosting (will be imported conditionally)
+# import lightgbm as lgb
+# import xgboost as xgb
 
 
 # In[2]:
@@ -349,7 +369,6 @@ y = dataset['Price_euros']
 numeric_cols = ['Ram', 'Weight', 'Inches', 'Touchscreen', 'IPS', 'Screen_Width', 'Screen_Height', 'Total_Pixels', 'PPI']
 
 # Create polynomial and interaction features for key numeric features
-from sklearn.preprocessing import PolynomialFeatures
 key_features = ['Ram', 'Weight', 'Total_Pixels', 'PPI']
 poly_feature_names = [col for col in x.columns if any(feat in str(col) for feat in key_features)]
 
@@ -394,13 +413,12 @@ print(f"Advanced interaction features created. Total features: {x.shape[1]}")
 # In[50]:
 
 
-pip install scikit-learn
+# scikit-learn should be installed: pip install scikit-learn
 
 
 # In[51]:
 
 
-from sklearn.model_selection import train_test_split
 # Add random_state for reproducibility
 x_train,x_test,y_train,y_test = train_test_split(x,y,test_size = 0.25, random_state=42)
 
@@ -409,8 +427,6 @@ x_train,x_test,y_train,y_test = train_test_split(x,y,test_size = 0.25, random_st
 
 
 # IMPROVEMENT: Add feature scaling for linear models
-from sklearn.preprocessing import StandardScaler
-
 # Create scaled versions for linear models
 scaler = StandardScaler()
 x_train_scaled = scaler.fit_transform(x_train)
@@ -436,8 +452,6 @@ x_train.shape,x_test.shape
 print("\n" + "="*60)
 print("OUTLIER DETECTION")
 print("="*60)
-
-from scipy import stats
 
 # Detect outliers in target variable using Z-score
 z_scores_target = np.abs(stats.zscore(y_train))
@@ -467,9 +481,6 @@ print("Tree-based models handle outliers well without removal.")
 
 
 # Improved evaluation function with multiple metrics
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import cross_val_score
-
 def model_acc(model, model_name="Model", use_scaled=False):
     """
     Improved model evaluation with multiple metrics.
@@ -516,10 +527,6 @@ def model_acc(model, model_name="Model", use_scaled=False):
 print("\n" + "="*60)
 print("MODEL COMPARISON - BASELINE MODELS")
 print("="*60)
-
-from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 
 # Linear models (use scaled data)
 print("\n--- LINEAR MODELS (with scaling) ---")
@@ -569,9 +576,6 @@ except ImportError:
 
 # In[58]:
 
-
-from sklearn.model_selection import RandomizedSearchCV
-from scipy.stats import randint, uniform
 
 # IMPROVEMENT: Enhanced hyperparameter tuning for Random Forest
 print("\n" + "="*60)
@@ -768,7 +772,6 @@ x_train.columns
 # In[68]:
 
 
-import pickle
 # Save the best overall model (could be RF or GB)
 with open('predictor.pickle','wb') as file:
     pickle.dump(best_overall_model,file)
