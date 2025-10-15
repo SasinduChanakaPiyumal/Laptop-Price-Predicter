@@ -6,6 +6,7 @@
 
 import pandas as pd
 import numpy as np
+import re
 
 
 # In[2]:
@@ -98,7 +99,9 @@ dataset['Company'].value_counts()
 
 
 def add_company(inpt):
-    if inpt == 'Samsung'or inpt == 'Razer' or inpt == 'Mediacom' or inpt == 'Microsoft' or inpt == 'Xiaomi' or inpt == 'Vero' or inpt == 'Chuwi' or inpt == 'Google' or inpt == 'Fujitsu' or inpt == 'LG' or inpt == 'Huawei':
+    # Using set for O(1) lookup instead of multiple OR conditions
+    other_companies = {'Samsung', 'Razer', 'Mediacom', 'Microsoft', 'Xiaomi', 'Vero', 'Chuwi', 'Google', 'Fujitsu', 'LG', 'Huawei'}
+    if inpt in other_companies:
         return 'Other'
     else:
         return inpt
@@ -138,7 +141,6 @@ dataset['IPS'] = dataset['ScreenResolution'].apply(lambda x:1 if 'IPS' in x else
 
 # Extract actual screen resolution (width x height)
 def extract_resolution(res_string):
-    import re
     # Find pattern like "1920x1080" or "3840x2160"
     match = re.search(r'(\d+)x(\d+)', res_string)
     if match:
@@ -147,9 +149,11 @@ def extract_resolution(res_string):
         return width, height, width * height  # width, height, total pixels
     return 1366, 768, 1366*768  # default resolution if not found
 
-dataset['Screen_Width'] = dataset['ScreenResolution'].apply(lambda x: extract_resolution(x)[0])
-dataset['Screen_Height'] = dataset['ScreenResolution'].apply(lambda x: extract_resolution(x)[1])
-dataset['Total_Pixels'] = dataset['ScreenResolution'].apply(lambda x: extract_resolution(x)[2])
+# Extract all resolution features in one pass to avoid redundant function calls
+resolution_features = dataset['ScreenResolution'].apply(extract_resolution)
+dataset['Screen_Width'] = resolution_features.apply(lambda x: x[0])
+dataset['Screen_Height'] = resolution_features.apply(lambda x: x[1])
+dataset['Total_Pixels'] = resolution_features.apply(lambda x: x[2])
 
 # Calculate PPI (Pixels Per Inch) - important quality metric
 dataset['PPI'] = np.sqrt(dataset['Total_Pixels']) / dataset['Inches']
@@ -270,8 +274,6 @@ def extract_storage_features(memory_string):
         has_hybrid = 1
     
     # Extract capacities
-    import re
-    
     # Find all capacity values with TB or GB
     tb_matches = re.findall(r'(\d+(?:\.\d+)?)\s*TB', memory_string)
     gb_matches = re.findall(r'(\d+(?:\.\d+)?)\s*GB', memory_string)
