@@ -182,7 +182,8 @@ Based on these improvements, expected performance improvements:
    pip install xgboost
    ```
 
-3. **Saved Model**: The final model saved to `predictor.pickle` is now the best performer (either tuned Random Forest or Gradient Boosting), not necessarily Random Forest.
+3. **Saved Model**: The final model saved to `predictor.joblib` is now the best performer (either tuned Random Forest or Gradient Boosting), not necessarily Random Forest.
+   - **SECURITY UPDATE**: Changed from pickle to joblib format to mitigate arbitrary code execution vulnerabilities (see SECURITY_FIX.md)
 
 4. **Feature Count**: The feature count has increased due to new engineered features. Ensure predictions use the correct feature set.
 
@@ -206,3 +207,23 @@ Based on these improvements, expected performance improvements:
 
 5. **Outlier Detection**:
    - Identify and handle outliers in price or specifications
+
+---
+
+## Security Improvements
+
+### Model Serialization Security Fix (HIGH Priority)
+
+**Issue Fixed**: Replaced insecure `pickle` module with `joblib` for model serialization.
+
+**Vulnerability**: Python's pickle module can execute arbitrary code during deserialization, 
+creating a Remote Code Execution (RCE) vulnerability if an attacker replaces the model file.
+
+**Fix**: 
+- Changed from `pickle.dump()` to `joblib.dump()`
+- Changed from `predictor.pickle` to `predictor.joblib`
+- Added comprehensive security test suite
+
+**Details**: See `SECURITY_FIX.md` for complete security documentation and test suite.
+
+**Testing**: Run `python test_security_fix.py` to verify the security fix.

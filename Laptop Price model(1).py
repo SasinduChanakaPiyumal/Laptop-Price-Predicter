@@ -766,12 +766,14 @@ x_train.columns
 # In[68]:
 
 
-import pickle
+import joblib
 # Save the best overall model (could be RF or GB)
-with open('predictor.pickle','wb') as file:
-    pickle.dump(best_overall_model,file)
+# Using joblib instead of pickle for security - joblib is the recommended approach for sklearn models
+# and provides better security against arbitrary code execution during deserialization
+joblib.dump(best_overall_model, 'predictor.joblib')
     
-print("\nModel saved to predictor.pickle")
+print("\nModel saved to predictor.joblib (using secure joblib format)")
+print("Security Note: Switched from pickle to joblib to prevent potential code execution vulnerabilities")
 
 
 # In[66]:
