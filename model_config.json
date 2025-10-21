@@ -1,0 +1,29 @@
+{
+  "company_mapping": [
+    "Samsung",
+    "Razer",
+    "Mediacom",
+    "Microsoft",
+    "Xiaomi",
+    "Vero",
+    "Chuwi",
+    "Google",
+    "Fujitsu",
+    "LG",
+    "Huawei"
+  ],
+  "os_mapping": {
+    "Windows": [
+      "Windows 10",
+      "Windows 7",
+      "Windows 10 S"
+    ],
+    "Mac": [
+      "macOS",
+      "Mac OS X"
+    ],
+    "Linux": [
+      "Linux"
+    ]
+  }
+}
