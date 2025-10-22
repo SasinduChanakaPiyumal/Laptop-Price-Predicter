@@ -6,6 +6,10 @@
 
 import pandas as pd
 import numpy as np
+import logging
+
+# Minimal logging configuration
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
 
 # In[2]:
@@ -224,9 +228,10 @@ dataset['ScreenResolution'].value_counts()
 # In[21]:
 
 
-# Enhanced feature engineering from ScreenResolution
-dataset['Touchscreen'] = dataset['ScreenResolution'].apply(lambda x:1 if 'Touchscreen' in x else 0)
-dataset['IPS'] = dataset['ScreenResolution'].apply(lambda x:1 if 'IPS' in x else 0)
+# Enhanced feature engineering from ScreenResolution (vectorized)
+sr = dataset['ScreenResolution'].fillna('')
+dataset['Touchscreen'] = sr.str.contains('Touchscreen', case=False, na=False).astype('int8')
+dataset['IPS'] = sr.str.contains('IPS', case=False, na=False).astype('int8')
 
 # Extract actual screen resolution (width x height)
 def extract_resolution(res_string):
@@ -292,6 +297,15 @@ dataset['Total_Pixels'] = dataset['ScreenResolution'].apply(lambda x: extract_re
 # Calculate PPI (Pixels Per Inch) - important quality metric
 dataset['PPI'] = np.sqrt(dataset['Total_Pixels']) / dataset['Inches']
 
+# Sanity checks for newly created flags
+try:
+    assert dataset['Touchscreen'].dtype == 'int8'
+    assert dataset['IPS'].dtype == 'int8'
+except AssertionError:
+    logging.info("Adjusting Touchscreen/IPS dtypes to int8")
+    dataset['Touchscreen'] = dataset['Touchscreen'].astype('int8')
+    dataset['IPS'] = dataset['IPS'].astype('int8')
+
 
 # In[22]:
 
@@ -302,7 +316,8 @@ dataset['Cpu'].value_counts()
 # In[23]:
 
 
-dataset['Cpu_name']= dataset['Cpu'].apply(lambda x:" ".join(x.split()[0:3]))
+# CPU name extraction (vectorized)
+dataset['Cpu_name'] = dataset['Cpu'].astype(str).str.split().str[:3].str.join(' ')
 
 
 # In[24]:
@@ -314,15 +329,13 @@ dataset['Cpu_name'].value_counts()
 # In[25]:
 
 
-def set_processor(name):
-    if name == 'Intel Core i7' or name == 'Intel Core i5' or name == 'Intel Core i3':
-        return name
-    else:
-        if name.split()[0] == 'AMD':
-            return 'AMD'
-        else:
-            return 'Other'
-dataset['Cpu_name'] = dataset['Cpu_name'].apply(set_processor)
+# CPU bucketing (vectorized)
+_top_cpu = {'Intel Core i7', 'Intel Core i5', 'Intel Core i3'}
+dataset['Cpu_name'] = np.where(
+    dataset['Cpu_name'].isin(_top_cpu),
+    dataset['Cpu_name'],
+    np.where(dataset['Cpu_name'].str.startswith('AMD', na=False), 'AMD', 'Other')
+)
 
 
 # In[26]:
@@ -334,7 +347,8 @@ dataset['Cpu_name'].value_counts()
 # In[27]:
 
 
-dataset['Gpu_name']= dataset['Gpu'].apply(lambda x:" ".join(x.split()[0:1]))
+# GPU vendor extraction (vectorized)
+dataset['Gpu_name'] = dataset['Gpu'].astype(str).str.split().str[0]
 
 
 # In[30]:
@@ -346,7 +360,13 @@ dataset['Gpu_name'].value_counts()
 # In[29]:
 
 
+# Filter out ARM GPUs with logging
+_before_rows = len(dataset)
 dataset = dataset[dataset['Gpu_name'] != 'ARM']
+_after_rows = len(dataset)
+_filtered = _before_rows - _after_rows
+if _filtered > 0:
+    logging.info(f"Excluded { _filtered } rows due to ARM GPUs")
 
 
 # In[32]:
@@ -364,16 +384,16 @@ dataset['OpSys'].value_counts()
 # In[34]:
 
 
-def set_os(inpt):
-    if inpt == 'Windows 10' or inpt == 'Windows 7' or inpt == 'Windows 10 S':
-        return 'Windows'
-    elif inpt == 'macOS' or inpt == 'Mac OS X':
-        return 'Mac'
-    elif inpt == 'Linux':
-        return inpt
-    else:
-        return 'Other'
-dataset['OpSys']= dataset['OpSys'].apply(set_os)
+# Operating system normalization (vectorized)
+_mapping = {
+    'Windows 10': 'Windows',
+    'Windows 7': 'Windows',
+    'Windows 10 S': 'Windows',
+    'macOS': 'Mac',
+    'Mac OS X': 'Mac',
+    'Linux': 'Linux'
+}
+dataset['OpSys'] = dataset['OpSys'].map(_mapping).fillna('Other')
 
 
 # In[34a]:
