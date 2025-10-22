@@ -188,13 +188,36 @@ dataset['Company'].value_counts()
 
 # In[16]:
 
+# Normalize and vectorize company bucketing (apply-free)
+dataset['Company'] = dataset['Company'].astype(str).str.strip()
+rare_brands = {'Samsung', 'Razer', 'Mediacom', 'Microsoft', 'Xiaomi', 'Vero', 'Chuwi', 'Google', 'Fujitsu', 'LG', 'Huawei'}
+dataset['Company'] = np.where(dataset['Company'].isin(rare_brands), 'Other', dataset['Company'])
 
-def add_company(inpt):
-    if inpt == 'Samsung'or inpt == 'Razer' or inpt == 'Mediacom' or inpt == 'Microsoft' or inpt == 'Xiaomi' or inpt == 'Vero' or inpt == 'Chuwi' or inpt == 'Google' or inpt == 'Fujitsu' or inpt == 'LG' or inpt == 'Huawei':
-        return 'Other'
-    else:
-        return inpt
-dataset['Company'] = dataset['Company'].apply(add_company)
+# DEBUG: quick performance check on synthetic data (100k rows) to confirm vectorization speedup
+import logging
+import time
+
+logger = logging.getLogger('company_bucketing_benchmark')
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
+
+n = 100_000
+synthetic_companies = pd.Series(np.random.choice(['Dell', 'Apple', 'Samsung', 'LG', 'HP', 'Huawei', 'Lenovo', 'Asus', 'Acer', 'Xiaomi'], size=n))
+synthetic_companies = synthetic_companies.astype(str).str.strip()
+
+start = time.perf_counter()
+_ = synthetic_companies.apply(lambda x: 'Other' if x in rare_brands else x)
+apply_time = time.perf_counter() - start
+
+start = time.perf_counter()
+_ = np.where(synthetic_companies.isin(rare_brands), 'Other', synthetic_companies)
+vector_time = time.perf_counter() - start
+
+speedup = (apply_time / vector_time) if vector_time > 0 else float('inf')
+logger.debug(f"Company bucketing benchmark (100k rows): apply={apply_time:.4f}s, vectorized={vector_time:.4f}s, speedup={speedup:.1f}x")
 
 
 # In[17]:
