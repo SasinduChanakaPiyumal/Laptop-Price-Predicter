@@ -4,11 +4,48 @@
 
 This document tracks security practices, vulnerability scanning results, risk acceptances, and remediation actions for this project.
 
-**Last Updated:** 2024-01-XX (Update date when scans are run)
+**Last Updated:** 2025-10-27 (Update date when scans are run)
 
 ---
 
 ## Security Scanning Procedures
+
+### Static Application Security Testing (SAST) for Python
+
+Tool: `bandit`
+
+Frequency: Before each commit via pre-commit, on every push/PR via CI, and ad-hoc locally.
+
+How to install locally:
+- Ensure your virtual environment is active
+- pip install -r requirements-dev.txt
+
+How to run locally:
+- Quick scan of staged files (via pre-commit):
+  - pre-commit install
+  - pre-commit run bandit --all-files
+- Full recursive scan with reports:
+  - bandit -r . -c bandit.yaml -f txt -o bandit-report.txt
+  - bandit -r . -c bandit.yaml -f json -o bandit-report.json
+
+Severity and confidence thresholds:
+- Configured in bandit.yaml at severity=MEDIUM, confidence=MEDIUM
+- Adjust per team policy as needed
+
+Suppressing or triaging findings:
+- Prefer fixing the code where possible
+- For proven false positives, either:
+  - Add an inline suppression with a clear justification: # nosec [BXXX] reason
+  - Or add the rule ID to bandit.yaml under skips with a comment explaining why
+- To create a baseline and ignore existing agreed-upon issues:
+  - bandit -r . -c bandit.yaml -f json -o bandit-baseline.json
+  - Use the baseline during scans: bandit -r . -c bandit.yaml --baseline bandit-baseline.json
+  - Commit baseline only if team agrees; otherwise store securely outside the repo
+
+Report interpretation:
+- Each finding includes severity (LOW/MEDIUM/HIGH) and confidence
+- Prioritize HIGH severity and HIGH confidence first
+- Common rules to watch for: exec/eval (B102/B307), subprocess with shell=True (B602/B607), weak hashing (B303), pickle.load (B301), hardcoded passwords (B105), yaml.load without SafeLoader (B506)
 
 ### Dependency Vulnerability Scanning
 
@@ -224,6 +261,7 @@ For security concerns or to report vulnerabilities, contact: [Maintainer Email/C
 | Date | Action | Details |
 |------|--------|---------|
 | 2024-01-XX | Initial | Created security policy and scanning infrastructure |
+| 2025-10-27 | Added | Integrated Bandit pre-commit hook and CI workflow; documented usage |
 
 ---
 
@@ -231,9 +269,12 @@ For security concerns or to report vulnerabilities, contact: [Maintainer Email/C
 
 ### First-Time Setup
 
-1. **Install tools:**
+1. Install tools:
    ```bash
-   # pip-audit
+   # Dev dependencies
+   pip install -r requirements-dev.txt
+   
+   # pip-audit (optional separate install)
    pip install pip-audit
    
    # gitleaks (example for macOS)
@@ -241,13 +282,19 @@ For security concerns or to report vulnerabilities, contact: [Maintainer Email/C
    # Or download from: https://github.com/gitleaks/gitleaks/releases
    ```
 
-2. **Generate proper requirements.txt with hashes:**
+2. Generate proper requirements.txt with hashes:
    ```bash
    pip install pip-tools
    pip-compile --generate-hashes -o requirements.txt requirements.in
    pip-sync requirements.txt
    ```
 
+3. Enable pre-commit locally:
+   ```bash
+   pre-commit install
+   # Test hooks on entire repo
+   pre-commit run --all-files
+   ```
 3. **Run initial scans:**
    ```bash
    # Dependency scan

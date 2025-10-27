@@ -1,0 +1,30 @@
+# Bandit configuration file
+# Reference: https://bandit.readthedocs.io/en/latest/config.html
+
+# Directories to exclude from scanning
+# Note: .ipynb files are ignored by Bandit; exclude checkpoints for safety
+exclude_dirs:
+  - .git
+  - .github
+  - .venv
+  - venv
+  - env
+  - build
+  - dist
+  - .eggs
+  - .ipynb_checkpoints
+
+# Only consider issues of at least this severity level: LOW, MEDIUM, HIGH
+# We choose MEDIUM as a balanced default baseline
+severity: MEDIUM
+
+# Only consider issues of at least this confidence level: LOW, MEDIUM, HIGH
+confidence: MEDIUM
+
+# Tests to skip globally (none for now). Add IDs here to suppress proven false positives.
+# Common examples that teams sometimes skip: B101(assert), B601(paramiko), etc.
+# Keep this empty initially to maximize coverage and adjust over time.
+skips: []
+
+# Targets: optional explicit glob patterns. By default Bandit will analyze provided paths.
+# We keep default behavior and run `bandit -r .` in CI to cover all Python files.

@@ -1,0 +1,25 @@
+# Pre-commit configuration
+# Install hooks with:
+#   pip install -r requirements-dev.txt
+#   pre-commit install
+# Run on all files with:
+#   pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        name: bandit (security linter)
+        description: Run Bandit on changed Python files
+        args:
+          # Respect central config and ensure informative output
+          - -c
+          - bandit.yaml
+          # Severity and confidence thresholds are also in bandit.yaml; we keep here for clarity
+          - -ll  # log level to show more info
+        additional_dependencies: []
+
+# Ensure Python version is detected correctly
+default_language_version:
+  python: python3
