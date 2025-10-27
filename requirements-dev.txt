@@ -1,0 +1,6 @@
+# Development dependencies for security and tooling
+pip-audit>=2.7.3
+pre-commit>=3.7.0
+
+# Optional: pip-tools to manage locked requirements
+pip-tools>=7.4.0
