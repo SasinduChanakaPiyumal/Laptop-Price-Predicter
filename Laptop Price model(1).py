@@ -47,7 +47,7 @@ dataset.isnull().sum()
 # In[8]:
 
 
-dataset['Ram']=dataset['Ram'].str.replace('GB','', regex=False).astype('int32')
+dataset['Ram'] = dataset['Ram'].str.replace('GB', '', regex=False).astype('int32')
 
 
 # In[9]:
@@ -59,7 +59,7 @@ dataset.head()
 # In[10]:
 
 
-dataset['Weight']=dataset['Weight'].str.replace('kg','', regex=False).astype('float64')
+dataset['Weight'] = dataset['Weight'].str.replace('kg', '', regex=False).astype('float64')
 
 
 # In[11]:
@@ -98,8 +98,8 @@ dataset['Company'].value_counts()
 
 
 def add_company(inpt):
-    others = {'Samsung','Razer','Mediacom','Microsoft','Xiaomi','Vero','Chuwi','Google','Fujitsu','LG','Huawei'}
-    return 'Other' if inpt in others else inpt
+    rare = {'Samsung','Razer','Mediacom','Microsoft','Xiaomi','Vero','Chuwi','Google','Fujitsu','LG','Huawei'}
+    return 'Other' if inpt in rare else inpt
 dataset['Company'] = dataset['Company'].apply(add_company)
 
 
@@ -202,14 +202,14 @@ dataset['OpSys'].value_counts()
 
 
 def set_os(inpt):
-    if inpt in {'Windows 10','Windows 7','Windows 10 S'}:
+    if inpt in {'Windows 10', 'Windows 7', 'Windows 10 S'}:
         return 'Windows'
-    if inpt in {'macOS','Mac OS X'}:
+    if inpt in {'macOS', 'Mac OS X'}:
         return 'Mac'
     if inpt == 'Linux':
         return 'Linux'
     return 'Other'
-dataset['OpSys']= dataset['OpSys'].apply(set_os)
+dataset['OpSys'] = dataset['OpSys'].apply(set_os)
 
 
 # In[37]:
@@ -246,14 +246,14 @@ y = dataset['Price_euros']
 # In[50]:
 
 
-# Ensure scikit-learn is installed in your environment before running this script.
+# Ensure scikit-learn is installed in your environment
 
 
 # In[51]:
 
 
 from sklearn.model_selection import train_test_split
-x_train,x_test,y_train,y_test = train_test_split(x, y, test_size=0.25, random_state=42)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25, random_state=42)
 
 
 # In[53]:
@@ -268,7 +268,7 @@ x_train.shape,x_test.shape
 def model_acc(model):
     model.fit(x_train,y_train)
     acc = model.score(x_test, y_test)
-    print(f"{model.__class__.__name__} --> {acc:.4f}")
+    print(str(model)+'-->'+str(acc))
 
 
 # In[57]:
@@ -296,29 +296,26 @@ model_acc(rf)
 
 from sklearn.model_selection import GridSearchCV
 
-parameters = {'n_estimators':[100,200,300],'max_depth':[None,10,20]}
+parameters = {'n_estimators': [10, 50, 100], 'criterion': ['squared_error', 'absolute_error', 'poisson']}
 
-grid_obj = GridSearchCV(estimator=rf, param_grid=parameters, cv=5, n_jobs=-1)
+grid_obj = GridSearchCV(estimator=rf, param_grid=parameters, cv=5, n_jobs=-1, scoring='r2')
 
-grid_fit = grid_obj.fit(x_train,y_train)
+grid_fit = grid_obj.fit(x_train, y_train)
 
 best_model = grid_fit.best_estimator_
-print("Best params:", grid_fit.best_params_)
-print("Best CV score:", grid_fit.best_score_)
-print("Best model:", best_model)
+best_model
 
 
 # In[59]:
 
 
-print("Test R^2:", best_model.score(x_test, y_test))
+best_model.score(x_test,y_test)
 
 
 # In[60]:
 
 
-feature_columns = x_train.columns.tolist()
-print("Feature columns:", feature_columns)
+x_train.columns
 
 
 # In[68]:
@@ -326,31 +323,32 @@ print("Feature columns:", feature_columns)
 
 import pickle
 with open('predictor.pickle','wb') as file:
-    pickle.dump({'model': best_model, 'columns': feature_columns}, file)
+    pickle.dump(best_model,file)
 
 
 # In[66]:
 
 
-print("Sample predictions:", best_model.predict(x_test.head(5)).tolist())
+# To make predictions, supply a DataFrame with the same columns as x_train. For example:
+# best_model.predict(x_test.head(1))
 
 
 # In[69]:
 
 
-# See sample predictions above
+# See above for prediction example using a DataFrame aligned with training columns.
 
 
 # In[70]:
 
 
-# See sample predictions above
+# See above for prediction example using a DataFrame aligned with training columns.
 
 
 # In[71]:
 
 
-# See sample predictions above
+# See above for prediction example using a DataFrame aligned with training columns.
 
 
 # In[ ]:
@@ -358,11 +356,6 @@ print("Sample predictions:", best_model.predict(x_test.head(5)).tolist())
 
 
 
-    if inpt == 'Windows 10' or inpt == 'Windows 7' or inpt == 'Windows 10 S':
-        return 'Windows'
-    elif inpt == 'macOS' or inpt == 'Mac OS X':
-        return 'Mac'
-    elif inpt == 'Linux':
         return inpt
     else:
         return 'Other'
@@ -988,5 +981,4 @@ print(f"Actual prices: {y_test.iloc[:5].values}")
 
 
 # In[ ]:
-
 
