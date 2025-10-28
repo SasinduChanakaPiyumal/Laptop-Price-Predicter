@@ -11,38 +11,7 @@ import numpy as np
 # In[2]:
 
 
-# Error handling for CSV file reading
-try:
-    dataset = pd.read_csv("laptop_price.csv", encoding='latin-1')
-    print(f"Successfully loaded dataset with {len(dataset)} rows")
-except FileNotFoundError:
-    print("ERROR: The file 'laptop_price.csv' was not found in the current directory.")
-    print("Please ensure the CSV file exists in the same directory as this script.")
-    raise
-except PermissionError:
-    print("ERROR: Permission denied when trying to read 'laptop_price.csv'.")
-    print("Please check file permissions and ensure you have read access.")
-    raise
-except pd.errors.ParserError as e:
-    print(f"ERROR: Failed to parse CSV file: {e}")
-    print("The CSV file may be corrupted or improperly formatted.")
-    raise
-except UnicodeDecodeError as e:
-    print(f"ERROR: Encoding issue with CSV file: {e}")
-    print("Trying alternative encodings...")
-    try:
-        dataset = pd.read_csv("laptop_price.csv", encoding='utf-8')
-        print("Successfully loaded with UTF-8 encoding")
-    except:
-        try:
-            dataset = pd.read_csv("laptop_price.csv", encoding='iso-8859-1')
-            print("Successfully loaded with ISO-8859-1 encoding")
-        except Exception as inner_e:
-            print(f"ERROR: Failed to load file with multiple encodings: {inner_e}")
-            raise
-except Exception as e:
-    print(f"ERROR: Unexpected error while reading CSV file: {e}")
-    raise
+dataset = pd.read_csv("laptop_price.csv",encoding = 'latin-1')
 
 
 # In[3]:
@@ -78,7 +47,7 @@ dataset.isnull().sum()
 # In[8]:
 
 
-dataset['Ram']=dataset['Ram'].str.replace('GB','').astype('int32')
+dataset['Ram']=dataset['Ram'].str.replace('GB','', regex=False).astype('int32')
 
 
 # In[9]:
@@ -90,68 +59,7 @@ dataset.head()
 # In[10]:
 
 
-# Error handling and validation for Weight conversion
-try:
-    # Check for null values first
-    null_count = dataset['Weight'].isnull().sum()
-    if null_count > 0:
-        print(f"WARNING: Found {null_count} null values in Weight column. These will be handled.")
-    
-    # Store original values for error reporting
-    original_weight = dataset['Weight'].copy()
-    
-    # Handle different unit formats (kg, g, lbs, etc.)
-    def convert_weight_to_kg(weight_str):
-        """Convert weight string to float in kg, handling multiple formats."""
-        if pd.isnull(weight_str):
-            return np.nan
-        
-        weight_str = str(weight_str).strip().lower()
-        
-        try:
-            # Handle kg format
-            if 'kg' in weight_str:
-                return float(weight_str.replace('kg', '').strip())
-            # Handle grams
-            elif 'g' in weight_str and 'kg' not in weight_str:
-                return float(weight_str.replace('g', '').strip()) / 1000.0
-            # Handle pounds
-            elif 'lb' in weight_str or 'lbs' in weight_str:
-                weight_val = weight_str.replace('lbs', '').replace('lb', '').strip()
-                return float(weight_val) * 0.453592  # Convert lbs to kg
-            # Try direct float conversion
-            else:
-                return float(weight_str)
-        except (ValueError, AttributeError) as e:
-            print(f"WARNING: Could not convert weight value '{weight_str}': {e}")
-            return np.nan
-    
-    # Apply conversion
-    dataset['Weight'] = dataset['Weight'].apply(convert_weight_to_kg)
-    
-    # Validate conversion results
-    conversion_failures = dataset['Weight'].isnull().sum() - null_count
-    if conversion_failures > 0:
-        print(f"WARNING: {conversion_failures} weight values could not be converted and were set to NaN")
-        # Show some examples of failed conversions
-        failed_indices = dataset[dataset['Weight'].isnull()].index[:5]
-        if len(failed_indices) > 0:
-            print(f"Sample failed values: {original_weight.loc[failed_indices].tolist()}")
-    
-    # Check for unrealistic values
-    if dataset['Weight'].notna().any():
-        min_weight = dataset['Weight'].min()
-        max_weight = dataset['Weight'].max()
-        if min_weight < 0.1 or max_weight > 10:
-            print(f"WARNING: Unusual weight values detected (min: {min_weight:.2f}kg, max: {max_weight:.2f}kg)")
-            print("These may indicate data quality issues.")
-    
-    print(f"Weight conversion completed. Valid values: {dataset['Weight'].notna().sum()}/{len(dataset)}")
-    
-except Exception as e:
-    print(f"ERROR: Failed to convert Weight column: {e}")
-    print("Attempting to preserve original data...")
-    raise
+dataset['Weight']=dataset['Weight'].str.replace('kg','', regex=False).astype('float64')
 
 
 # In[11]:
@@ -189,11 +97,9 @@ dataset['Company'].value_counts()
 # In[16]:
 
 
+company_minor_brands = {'Samsung','Razer','Mediacom','Microsoft','Xiaomi','Vero','Chuwi','Google','Fujitsu','LG','Huawei'}
 def add_company(inpt):
-    if inpt == 'Samsung'or inpt == 'Razer' or inpt == 'Mediacom' or inpt == 'Microsoft' or inpt == 'Xiaomi' or inpt == 'Vero' or inpt == 'Chuwi' or inpt == 'Google' or inpt == 'Fujitsu' or inpt == 'LG' or inpt == 'Huawei':
-        return 'Other'
-    else:
-        return inpt
+    return 'Other' if inpt in company_minor_brands else inpt
 dataset['Company'] = dataset['Company'].apply(add_company)
 
 
@@ -224,73 +130,8 @@ dataset['ScreenResolution'].value_counts()
 # In[21]:
 
 
-# Enhanced feature engineering from ScreenResolution
 dataset['Touchscreen'] = dataset['ScreenResolution'].apply(lambda x:1 if 'Touchscreen' in x else 0)
 dataset['IPS'] = dataset['ScreenResolution'].apply(lambda x:1 if 'IPS' in x else 0)
-
-# Extract actual screen resolution (width x height)
-def extract_resolution(res_string):
-    """
-    Extract screen resolution from string with comprehensive error handling.
-    
-    Args:
-        res_string: String containing resolution info (e.g., "1920x1080")
-    
-    Returns:
-        tuple: (width, height, total_pixels)
-    """
-    import re
-    
-    # Default resolution values
-    DEFAULT_WIDTH = 1366
-    DEFAULT_HEIGHT = 768
-    DEFAULT_PIXELS = DEFAULT_WIDTH * DEFAULT_HEIGHT
-    
-    # Handle None or invalid input
-    if res_string is None or not isinstance(res_string, str):
-        print(f"WARNING: Invalid resolution input (None or non-string): {type(res_string)}")
-        return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
-    
-    # Handle empty string
-    if not res_string.strip():
-        print("WARNING: Empty resolution string provided")
-        return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
-    
-    try:
-        # Find pattern like "1920x1080" or "3840x2160"
-        match = re.search(r'(\d+)x(\d+)', res_string)
-        
-        if match:
-            try:
-                width = int(match.group(1))
-                height = int(match.group(2))
-                
-                # Validate reasonable resolution values
-                if width < 640 or width > 7680 or height < 480 or height > 4320:
-                    print(f"WARNING: Unusual resolution detected: {width}x{height}. Using default.")
-                    return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
-                
-                return width, height, width * height
-            except (ValueError, AttributeError) as e:
-                print(f"WARNING: Could not convert resolution values to integers in '{res_string}': {e}")
-                return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
-        else:
-            # No match found, use default silently (common case for non-standard formats)
-            return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
-            
-    except re.error as e:
-        print(f"ERROR: Regex error in extract_resolution for '{res_string}': {e}")
-        return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
-    except Exception as e:
-        print(f"ERROR: Unexpected error in extract_resolution for '{res_string}': {e}")
-        return DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_PIXELS
-
-dataset['Screen_Width'] = dataset['ScreenResolution'].apply(lambda x: extract_resolution(x)[0])
-dataset['Screen_Height'] = dataset['ScreenResolution'].apply(lambda x: extract_resolution(x)[1])
-dataset['Total_Pixels'] = dataset['ScreenResolution'].apply(lambda x: extract_resolution(x)[2])
-
-# Calculate PPI (Pixels Per Inch) - important quality metric
-dataset['PPI'] = np.sqrt(dataset['Total_Pixels']) / dataset['Inches']
 
 
 # In[22]:
@@ -314,14 +155,14 @@ dataset['Cpu_name'].value_counts()
 # In[25]:
 
 
+major_intel = {'Intel Core i7', 'Intel Core i5', 'Intel Core i3'}
 def set_processor(name):
-    if name == 'Intel Core i7' or name == 'Intel Core i5' or name == 'Intel Core i3':
+    if name in major_intel:
         return name
+    elif name.split()[0] == 'AMD':
+        return 'AMD'
     else:
-        if name.split()[0] == 'AMD':
-            return 'AMD'
-        else:
-            return 'Other'
+        return 'Other'
 dataset['Cpu_name'] = dataset['Cpu_name'].apply(set_processor)
 
 
@@ -362,6 +203,163 @@ dataset['OpSys'].value_counts()
 
 
 # In[34]:
+
+
+os_map = {
+    'Windows 10': 'Windows',
+    'Windows 7': 'Windows',
+    'Windows 10 S': 'Windows',
+    'macOS': 'Mac',
+    'Mac OS X': 'Mac',
+    'Linux': 'Linux'
+}
+def set_os(inpt):
+    return os_map.get(inpt, 'Other')
+dataset['OpSys']= dataset['OpSys'].apply(set_os)
+
+
+# In[37]:
+
+
+dataset=dataset.drop(columns=['laptop_ID','Inches','Product','ScreenResolution','Cpu','Gpu'])
+
+
+# In[38]:
+
+
+dataset.head()
+
+
+# In[39]:
+
+
+dataset = pd.get_dummies(dataset)
+
+
+# In[40]:
+
+
+dataset.head()
+
+
+# In[41]:
+
+
+x = dataset.drop('Price_euros',axis=1)
+y = dataset['Price_euros']
+
+
+# In[50]:
+
+
+# Ensure scikit-learn is installed in your environment before running this script.
+
+
+# In[51]:
+
+
+from sklearn.model_selection import train_test_split
+x_train,x_test,y_train,y_test = train_test_split(x,y,test_size = 0.25, random_state=42)
+
+
+# In[53]:
+
+
+x_train.shape,x_test.shape
+
+
+# In[54]:
+
+
+def model_acc(model):
+    model.fit(x_train,y_train)
+    acc = model.score(x_test, y_test)
+    print(str(model)+'-->'+str(acc))
+
+
+# In[57]:
+
+
+from sklearn.linear_model import LinearRegression
+lr = LinearRegression()
+model_acc(lr)
+
+from sklearn.linear_model import Lasso
+lasso = Lasso()
+model_acc(lasso)
+
+from sklearn.tree import DecisionTreeRegressor
+dt = DecisionTreeRegressor()
+model_acc(dt)
+
+from sklearn.ensemble import RandomForestRegressor
+rf = RandomForestRegressor(random_state=42, n_jobs=-1)
+model_acc(rf)
+
+
+# In[58]:
+
+
+from sklearn.model_selection import GridSearchCV
+
+parameters = {'n_estimators':[10,50,100],'criterion':['squared_error','absolute_error','poisson']}
+
+grid_obj = GridSearchCV(estimator = rf ,param_grid = parameters, cv=5, n_jobs=-1, scoring='r2')
+
+grid_fit = grid_obj.fit(x_train,y_train)
+
+best_model = grid_fit.best_estimator_
+best_model
+
+
+# In[59]:
+
+
+best_model.score(x_test,y_test)
+
+
+# In[60]:
+
+
+x_train.columns
+
+
+# In[68]:
+
+
+import pickle
+with open('predictor.pickle','wb') as file:
+    pickle.dump(best_model,file)
+
+
+# In[66]:
+
+
+best_model.predict([[8,1.4,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1]])
+
+
+# In[69]:
+
+
+best_model.predict([[8,0.9,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1]])
+
+
+# In[70]:
+
+
+best_model.predict([[8,1.2,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1]])
+
+
+# In[71]:
+
+
+best_model.predict([[8,0.9,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1]])
+
+
+# In[ ]:
+
+
+
 
 
 def set_os(inpt):
@@ -995,7 +993,6 @@ print(f"Actual prices: {y_test.iloc[:5].values}")
 
 
 # In[ ]:
-
 
 
 
