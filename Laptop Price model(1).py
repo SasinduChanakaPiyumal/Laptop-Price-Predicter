@@ -47,7 +47,7 @@ dataset.isnull().sum()
 # In[8]:
 
 
-dataset['Ram'] = dataset['Ram'].str.replace('GB', '', regex=False).astype('int32')
+dataset['Ram']=dataset['Ram'].str.replace('GB','', regex=False).astype('int32')
 
 
 # In[9]:
@@ -59,7 +59,7 @@ dataset.head()
 # In[10]:
 
 
-dataset['Weight'] = dataset['Weight'].str.replace('kg', '', regex=False).astype('float64')
+dataset['Weight']=dataset['Weight'].str.replace('kg','', regex=False).astype('float64')
 
 
 # In[11]:
@@ -97,9 +97,9 @@ dataset['Company'].value_counts()
 # In[16]:
 
 
+company_minor_brands = {'Samsung','Razer','Mediacom','Microsoft','Xiaomi','Vero','Chuwi','Google','Fujitsu','LG','Huawei'}
 def add_company(inpt):
-    rare = {'Samsung','Razer','Mediacom','Microsoft','Xiaomi','Vero','Chuwi','Google','Fujitsu','LG','Huawei'}
-    return 'Other' if inpt in rare else inpt
+    return 'Other' if inpt in company_minor_brands else inpt
 dataset['Company'] = dataset['Company'].apply(add_company)
 
 
@@ -155,10 +155,14 @@ dataset['Cpu_name'].value_counts()
 # In[25]:
 
 
+major_intel = {'Intel Core i7', 'Intel Core i5', 'Intel Core i3'}
 def set_processor(name):
-    if name in {'Intel Core i7', 'Intel Core i5', 'Intel Core i3'}:
+    if name in major_intel:
         return name
-    return 'AMD' if name.split()[0] == 'AMD' else 'Other'
+    elif name.split()[0] == 'AMD':
+        return 'AMD'
+    else:
+        return 'Other'
 dataset['Cpu_name'] = dataset['Cpu_name'].apply(set_processor)
 
 
@@ -201,15 +205,17 @@ dataset['OpSys'].value_counts()
 # In[34]:
 
 
+os_map = {
+    'Windows 10': 'Windows',
+    'Windows 7': 'Windows',
+    'Windows 10 S': 'Windows',
+    'macOS': 'Mac',
+    'Mac OS X': 'Mac',
+    'Linux': 'Linux'
+}
 def set_os(inpt):
-    if inpt in {'Windows 10', 'Windows 7', 'Windows 10 S'}:
-        return 'Windows'
-    if inpt in {'macOS', 'Mac OS X'}:
-        return 'Mac'
-    if inpt == 'Linux':
-        return 'Linux'
-    return 'Other'
-dataset['OpSys'] = dataset['OpSys'].apply(set_os)
+    return os_map.get(inpt, 'Other')
+dataset['OpSys']= dataset['OpSys'].apply(set_os)
 
 
 # In[37]:
@@ -246,14 +252,14 @@ y = dataset['Price_euros']
 # In[50]:
 
 
-# Ensure scikit-learn is installed in your environment
+# Ensure scikit-learn is installed in your environment before running this script.
 
 
 # In[51]:
 
 
 from sklearn.model_selection import train_test_split
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25, random_state=42)
+x_train,x_test,y_train,y_test = train_test_split(x,y,test_size = 0.25, random_state=42)
 
 
 # In[53]:
@@ -283,11 +289,11 @@ lasso = Lasso()
 model_acc(lasso)
 
 from sklearn.tree import DecisionTreeRegressor
-dt = DecisionTreeRegressor(random_state=42)
+dt = DecisionTreeRegressor()
 model_acc(dt)
 
 from sklearn.ensemble import RandomForestRegressor
-rf = RandomForestRegressor(random_state=42)
+rf = RandomForestRegressor(random_state=42, n_jobs=-1)
 model_acc(rf)
 
 
@@ -296,11 +302,11 @@ model_acc(rf)
 
 from sklearn.model_selection import GridSearchCV
 
-parameters = {'n_estimators': [10, 50, 100], 'criterion': ['squared_error', 'absolute_error', 'poisson']}
+parameters = {'n_estimators':[10,50,100],'criterion':['squared_error','absolute_error','poisson']}
 
-grid_obj = GridSearchCV(estimator=rf, param_grid=parameters, cv=5, n_jobs=-1, scoring='r2')
+grid_obj = GridSearchCV(estimator = rf ,param_grid = parameters, cv=5, n_jobs=-1, scoring='r2')
 
-grid_fit = grid_obj.fit(x_train, y_train)
+grid_fit = grid_obj.fit(x_train,y_train)
 
 best_model = grid_fit.best_estimator_
 best_model
@@ -329,26 +335,25 @@ with open('predictor.pickle','wb') as file:
 # In[66]:
 
 
-# To make predictions, supply a DataFrame with the same columns as x_train. For example:
-# best_model.predict(x_test.head(1))
+best_model.predict([[8,1.4,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1]])
 
 
 # In[69]:
 
 
-# See above for prediction example using a DataFrame aligned with training columns.
+best_model.predict([[8,0.9,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1]])
 
 
 # In[70]:
 
 
-# See above for prediction example using a DataFrame aligned with training columns.
+best_model.predict([[8,1.2,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1]])
 
 
 # In[71]:
 
 
-# See above for prediction example using a DataFrame aligned with training columns.
+best_model.predict([[8,0.9,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1]])
 
 
 # In[ ]:
@@ -356,75 +361,20 @@ with open('predictor.pickle','wb') as file:
 
 
 
-        return inpt
-    else:
-        return 'Other'
-dataset['OpSys']= dataset['OpSys'].apply(set_os)
 
 
-# In[34a]:
+# IMPROVEMENT: Enhanced Memory/Storage Feature Engineering (vectorized)
+# Extract storage type and capacity from Memory column using fast vectorized ops
+print("Memory/Storage Feature Engineering (vectorized)...")
 
+# Use optimized vectorized implementation
+from utils.storage_features import extract_storage_features_vectorized
 
-# IMPROVEMENT: Enhanced Memory/Storage Feature Engineering
-# Extract storage type and capacity from Memory column
-print("Memory/Storage Feature Engineering...")
+_storage_df = extract_storage_features_vectorized(dataset['Memory'])
+# Assign back to dataset (aligned by index)
+dataset = pd.concat([dataset, _storage_df], axis=1)
 
-def extract_storage_features(memory_string):
-    """
-    Extract storage type and total capacity from memory string.
-    Examples: "256GB SSD", "1TB HDD", "128GB SSD +  1TB HDD", "256GB Flash Storage"
-    """
-    memory_string = str(memory_string)
-    
-    # Initialize features
-    has_ssd = 0
-    has_hdd = 0
-    has_flash = 0
-    has_hybrid = 0
-    total_capacity_gb = 0
-    
-    # Check for storage types
-    if 'SSD' in memory_string:
-        has_ssd = 1
-    if 'HDD' in memory_string:
-        has_hdd = 1
-    if 'Flash' in memory_string:
-        has_flash = 1
-    if 'Hybrid' in memory_string:
-        has_hybrid = 1
-    
-    # Extract capacities
-    import re
-    
-    # Find all capacity values with TB or GB
-    tb_matches = re.findall(r'(\d+(?:\.\d+)?)\s*TB', memory_string)
-    gb_matches = re.findall(r'(\d+(?:\.\d+)?)\s*GB', memory_string)
-    
-    # Convert to GB and sum
-    for tb in tb_matches:
-        total_capacity_gb += float(tb) * 1024
-    for gb in gb_matches:
-        total_capacity_gb += float(gb)
-    
-    return has_ssd, has_hdd, has_flash, has_hybrid, total_capacity_gb
-
-# Apply storage feature extraction
-storage_features = dataset['Memory'].apply(extract_storage_features)
-dataset['Has_SSD'] = storage_features.apply(lambda x: x[0])
-dataset['Has_HDD'] = storage_features.apply(lambda x: x[1])
-dataset['Has_Flash'] = storage_features.apply(lambda x: x[2])
-dataset['Has_Hybrid'] = storage_features.apply(lambda x: x[3])
-dataset['Storage_Capacity_GB'] = storage_features.apply(lambda x: x[4])
-
-# Create derived storage features
-dataset['Storage_Type_Score'] = (
-    dataset['Has_SSD'] * 3 +      # SSD is premium
-    dataset['Has_Flash'] * 2.5 +  # Flash is also premium
-    dataset['Has_Hybrid'] * 2 +   # Hybrid is mid-range
-    dataset['Has_HDD'] * 1        # HDD is budget
-)
-
-print(f"Storage feature engineering complete.")
+print(f"Storage feature engineering complete (vectorized).")
 print(f"Sample storage features:")
 print(dataset[['Memory', 'Has_SSD', 'Has_HDD', 'Storage_Capacity_GB', 'Storage_Type_Score']].head())
 
@@ -981,4 +931,3 @@ print(f"Actual prices: {y_test.iloc[:5].values}")
 
 
 # In[ ]:
-
