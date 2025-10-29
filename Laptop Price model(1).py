@@ -97,9 +97,9 @@ dataset['Company'].value_counts()
 # In[16]:
 
 
-company_minor_brands = {'Samsung','Razer','Mediacom','Microsoft','Xiaomi','Vero','Chuwi','Google','Fujitsu','LG','Huawei'}
+other_companies = {'Samsung','Razer','Mediacom','Microsoft','Xiaomi','Vero','Chuwi','Google','Fujitsu','LG','Huawei'}
 def add_company(inpt):
-    return 'Other' if inpt in company_minor_brands else inpt
+    return 'Other' if inpt in other_companies else inpt
 dataset['Company'] = dataset['Company'].apply(add_company)
 
 
@@ -155,9 +155,9 @@ dataset['Cpu_name'].value_counts()
 # In[25]:
 
 
-major_intel = {'Intel Core i7', 'Intel Core i5', 'Intel Core i3'}
+core_series = {'Intel Core i7','Intel Core i5','Intel Core i3'}
 def set_processor(name):
-    if name in major_intel:
+    if name in core_series:
         return name
     elif name.split()[0] == 'AMD':
         return 'AMD'
@@ -205,16 +205,15 @@ dataset['OpSys'].value_counts()
 # In[34]:
 
 
-os_map = {
-    'Windows 10': 'Windows',
-    'Windows 7': 'Windows',
-    'Windows 10 S': 'Windows',
-    'macOS': 'Mac',
-    'Mac OS X': 'Mac',
-    'Linux': 'Linux'
-}
 def set_os(inpt):
-    return os_map.get(inpt, 'Other')
+    if inpt in ('Windows 10', 'Windows 7', 'Windows 10 S'):
+        return 'Windows'
+    elif inpt in ('macOS', 'Mac OS X'):
+        return 'Mac'
+    elif inpt == 'Linux':
+        return 'Linux'
+    else:
+        return 'Other'
 dataset['OpSys']= dataset['OpSys'].apply(set_os)
 
 
@@ -252,13 +251,17 @@ y = dataset['Price_euros']
 # In[50]:
 
 
-# Ensure scikit-learn is installed in your environment before running this script.
+# Ensure scikit-learn is installed in your environment.
+# If not installed, run: pip install scikit-learn
 
 
 # In[51]:
 
 
-from sklearn.model_selection import train_test_split
+try:
+    from sklearn.model_selection import train_test_split
+except ImportError as e:
+    raise ImportError("scikit-learn is required. Please install it with 'pip install scikit-learn'") from e
 x_train,x_test,y_train,y_test = train_test_split(x,y,test_size = 0.25, random_state=42)
 
 
@@ -274,7 +277,7 @@ x_train.shape,x_test.shape
 def model_acc(model):
     model.fit(x_train,y_train)
     acc = model.score(x_test, y_test)
-    print(str(model)+'-->'+str(acc))
+    print(f"{model.__class__.__name__} -> {acc:.4f}")
 
 
 # In[57]:
@@ -289,7 +292,7 @@ lasso = Lasso()
 model_acc(lasso)
 
 from sklearn.tree import DecisionTreeRegressor
-dt = DecisionTreeRegressor()
+dt = DecisionTreeRegressor(random_state=42)
 model_acc(dt)
 
 from sklearn.ensemble import RandomForestRegressor
@@ -304,7 +307,7 @@ from sklearn.model_selection import GridSearchCV
 
 parameters = {'n_estimators':[10,50,100],'criterion':['squared_error','absolute_error','poisson']}
 
-grid_obj = GridSearchCV(estimator = rf ,param_grid = parameters, cv=5, n_jobs=-1, scoring='r2')
+grid_obj = GridSearchCV(estimator = rf ,param_grid = parameters, cv=5, n_jobs=-1)
 
 grid_fit = grid_obj.fit(x_train,y_train)
 
@@ -332,33 +335,12 @@ with open('predictor.pickle','wb') as file:
     pickle.dump(best_model,file)
 
 
-# In[66]:
-
-
-best_model.predict([[8,1.4,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1]])
-
-
-# In[69]:
-
-
-best_model.predict([[8,0.9,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1]])
-
-
-# In[70]:
-
-
-best_model.predict([[8,1.2,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1]])
-
-
-# In[71]:
-
-
-best_model.predict([[8,0.9,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1]])
-
+# Example: Predict on new data by aligning to training feature columns
+# sample = pd.DataFrame([dict_of_feature_values])
+# sample = sample.reindex(columns=x_train.columns, fill_value=0)
+# prediction = best_model.predict(sample)
 
 # In[ ]:
-
-
 
 
 
