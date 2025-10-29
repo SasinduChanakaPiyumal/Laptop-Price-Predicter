@@ -4,14 +4,30 @@
 # In[1]:
 
 
+import os
+import logging
 import pandas as pd
 import numpy as np
 
+# Configure logging
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
+    format="%(asctime)s %(levelname)s %(name)s - %(message)s"
+)
+logger = logging.getLogger("laptop_price_model")
 
 # In[2]:
 
-
-dataset = pd.read_csv("laptop_price.csv",encoding = 'latin-1')
+try:
+    dataset = pd.read_csv("laptop_price.csv", encoding='latin-1')
+    logger.info("Loaded dataset 'laptop_price.csv' with shape %s", dataset.shape)
+except FileNotFoundError:
+    logger.exception("Dataset file 'laptop_price.csv' not found.")
+    raise
+except Exception:
+    logger.exception("Failed to load dataset 'laptop_price.csv'.")
+    raise
 
 
 # In[3]:
@@ -72,7 +88,7 @@ dataset.head(2)
 
 
 non_numeric_columns = dataset.select_dtypes(exclude=['number']).columns
-print(non_numeric_columns)
+logger.debug("Non-numeric columns detected: %s", list(non_numeric_columns))
 
 
 # In[13]:
@@ -85,13 +101,13 @@ correlation = numeric_dataset.corr()['Price_euros']
 # In[14]:
 
 
-correlation
+logger.debug("Correlation with target computed for numeric features.")
 
 
 # In[15]:
 
 
-dataset['Company'].value_counts()
+logger.info("Company distribution computed before grouping rare companies.")
 
 
 # In[16]:
@@ -106,7 +122,7 @@ dataset['Company'] = dataset['Company'].apply(add_company)
 # In[17]:
 
 
-dataset['Company'].value_counts()
+logger.info("Company distribution computed after grouping rare companies.")
 
 
 # In[18]:
@@ -118,13 +134,13 @@ len(dataset['Product'].value_counts())
 # In[19]:
 
 
-dataset['TypeName'].value_counts()
+logger.debug("TypeName value counts computed.")
 
 
 # In[20]:
 
 
-dataset['ScreenResolution'].value_counts()
+logger.debug("ScreenResolution value counts computed.")
 
 
 # In[21]:
@@ -137,7 +153,7 @@ dataset['IPS'] = dataset['ScreenResolution'].apply(lambda x:1 if 'IPS' in x else
 # In[22]:
 
 
-dataset['Cpu'].value_counts()
+logger.debug("CPU value counts computed.")
 
 
 # In[23]:
@@ -149,7 +165,7 @@ dataset['Cpu_name']= dataset['Cpu'].apply(lambda x:" ".join(x.split()[0:3]))
 # In[24]:
 
 
-dataset['Cpu_name'].value_counts()
+logger.debug("CPU name value counts computed (initial extraction).")
 
 
 # In[25]:
@@ -169,7 +185,7 @@ dataset['Cpu_name'] = dataset['Cpu_name'].apply(set_processor)
 # In[26]:
 
 
-dataset['Cpu_name'].value_counts()
+logger.debug("CPU name value counts computed (after grouping).")
 
 
 # In[27]:
@@ -181,7 +197,7 @@ dataset['Gpu_name']= dataset['Gpu'].apply(lambda x:" ".join(x.split()[0:1]))
 # In[30]:
 
 
-dataset['Gpu_name'].value_counts()
+logger.debug("GPU name value counts computed.")
 
 
 # In[29]:
@@ -199,7 +215,7 @@ dataset.head(2)
 # In[35]:
 
 
-dataset['OpSys'].value_counts()
+logger.debug("Operating System value counts computed.")
 
 
 # In[34]:
@@ -347,7 +363,7 @@ with open('predictor.pickle','wb') as file:
 
 # IMPROVEMENT: Enhanced Memory/Storage Feature Engineering
 # Extract storage type and capacity from Memory column
-print("Memory/Storage Feature Engineering...")
+logger.info("Memory/Storage Feature Engineering...")
 
 def extract_storage_features(memory_string):
     """
@@ -404,9 +420,9 @@ dataset['Storage_Type_Score'] = (
     dataset['Has_HDD'] * 1        # HDD is budget
 )
 
-print(f"Storage feature engineering complete.")
-print(f"Sample storage features:")
-print(dataset[['Memory', 'Has_SSD', 'Has_HDD', 'Storage_Capacity_GB', 'Storage_Type_Score']].head())
+logger.info("Storage feature engineering complete.")
+logger.debug("Sample storage features:")
+logger.debug("%s", dataset[['Memory', 'Has_SSD', 'Has_HDD', 'Storage_Capacity_GB', 'Storage_Type_Score']].head())
 
 
 # In[37]:
@@ -464,7 +480,7 @@ if 'Total_Pixels' in x.columns and 'Inches' in x.columns:
     x['Screen_Quality'] = x['Total_Pixels'] / 1000000 * x['Inches']  # Normalized quality metric
 
 # IMPROVEMENT: Additional advanced interaction features
-print("\nCreating advanced interaction features...")
+logger.info("Creating advanced interaction features...")
 
 # Storage capacity * SSD indicator (SSD with high capacity is premium)
 if 'Storage_Capacity_GB' in x.columns and 'Has_SSD' in x.columns:
@@ -490,7 +506,7 @@ if 'Total_Pixels' in x.columns and 'Ram' in x.columns:
 if 'Storage_Capacity_GB' in x.columns and 'Inches' in x.columns:
     x['Storage_Per_Inch'] = x['Storage_Capacity_GB'] / x['Inches']
 
-print(f"Advanced interaction features created. Total features: {x.shape[1]}")
+logger.info("Advanced interaction features created. Total features: %d", x.shape[1])
 
 
 # In[50]:
@@ -522,7 +538,7 @@ x_test_scaled = scaler.transform(x_test)
 x_train_scaled_df = pd.DataFrame(x_train_scaled, columns=x_train.columns, index=x_train.index)
 x_test_scaled_df = pd.DataFrame(x_test_scaled, columns=x_test.columns, index=x_test.index)
 
-print(f"\nFeature scaling complete. Shape: {x_train_scaled_df.shape}")
+logger.info("Feature scaling complete. Shape: %s", x_train_scaled_df.shape)
 
 
 # In[53]:
@@ -535,9 +551,9 @@ x_train.shape,x_test.shape
 
 
 # IMPROVEMENT: Basic outlier detection and reporting
-print("\n" + "="*60)
-print("OUTLIER DETECTION")
-print("="*60)
+logger.info("%s", "\n" + "="*60)
+logger.info("OUTLIER DETECTION")
+logger.info("%s", "="*60)
 
 from scipy import stats
 
@@ -545,9 +561,9 @@ from scipy import stats
 z_scores_target = np.abs(stats.zscore(y_train))
 outliers_target = np.where(z_scores_target > 3)[0]
 
-print(f"\nTarget variable (Price) outliers (Z-score > 3): {len(outliers_target)}")
+logger.info("Target variable (Price) outliers (Z-score > 3): %d", len(outliers_target))
 if len(outliers_target) > 0:
-    print(f"Outlier prices: {y_train.iloc[outliers_target].values[:5]} (showing first 5)")
+    logger.debug("Outlier prices (first 5): %s", y_train.iloc[outliers_target].values[:5])
 
 # Detect outliers in key features
 key_numeric_features = ['Ram', 'Weight', 'Inches', 'Total_Pixels', 'Storage_Capacity_GB']
@@ -559,10 +575,10 @@ for feature in key_numeric_features:
         outliers = np.where(z_scores > 3)[0]
         outlier_counts[feature] = len(outliers)
         if len(outliers) > 0:
-            print(f"{feature} outliers: {len(outliers)}")
+            logger.debug("%s outliers: %d", feature, len(outliers))
 
-print(f"\nNote: Outliers are kept in the dataset as they may represent legitimate premium/budget laptops.")
-print("Tree-based models handle outliers well without removal.")
+logger.info("Note: Outliers are kept in the dataset as they may represent legitimate premium/budget laptops.")
+logger.info("Tree-based models handle outliers well without removal.")
 
 
 # In[54]:
@@ -603,11 +619,11 @@ def model_acc(model, model_name="Model", use_scaled=False):
     cv_mean = cv_scores.mean()
     cv_std = cv_scores.std()
     
-    print(f"\n{model_name}:")
-    print(f"  R² Score: {r2:.4f}")
-    print(f"  MAE: {mae:.2f} euros")
-    print(f"  RMSE: {rmse:.2f} euros")
-    print(f"  CV R² Score: {cv_mean:.4f} (+/- {cv_std:.4f})")
+    logger.info("%s:", model_name)
+    logger.info("  R² Score: %.4f", r2)
+    logger.info("  MAE: %.2f euros", mae)
+    logger.info("  RMSE: %.2f euros", rmse)
+    logger.info("  CV R² Score: %.4f (+/- %.4f)", cv_mean, cv_std)
     
     return r2, mae, rmse, cv_mean
 
@@ -615,16 +631,16 @@ def model_acc(model, model_name="Model", use_scaled=False):
 # In[57]:
 
 
-print("\n" + "="*60)
-print("MODEL COMPARISON - BASELINE MODELS")
-print("="*60)
+logger.info("%s", "\n" + "="*60)
+logger.info("MODEL COMPARISON - BASELINE MODELS")
+logger.info("%s", "="*60)
 
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 
 # Linear models (use scaled data)
-print("\n--- LINEAR MODELS (with scaling) ---")
+logger.info("--- LINEAR MODELS (with scaling) ---")
 lr = LinearRegression()
 model_acc(lr, "Linear Regression", use_scaled=True)
 
@@ -640,7 +656,7 @@ elastic = ElasticNet(alpha=1.0, l1_ratio=0.5, random_state=42)
 model_acc(elastic, "ElasticNet (L1+L2)", use_scaled=True)
 
 # Tree-based models (don't need scaling)
-print("\n--- TREE-BASED MODELS (no scaling needed) ---")
+logger.info("--- TREE-BASED MODELS (no scaling needed) ---")
 dt = DecisionTreeRegressor(random_state=42)
 model_acc(dt, "Decision Tree")
 
@@ -648,7 +664,7 @@ rf = RandomForestRegressor(n_estimators=100, random_state=42)
 model_acc(rf, "Random Forest (default)")
 
 # Gradient Boosting models
-print("\n--- GRADIENT BOOSTING MODELS ---")
+logger.info("--- GRADIENT BOOSTING MODELS ---")
 gb = GradientBoostingRegressor(n_estimators=100, random_state=42)
 model_acc(gb, "Gradient Boosting")
 
@@ -658,7 +674,7 @@ try:
     lgb_model = lgb.LGBMRegressor(n_estimators=100, random_state=42, verbose=-1)
     model_acc(lgb_model, "LightGBM")
 except ImportError:
-    print("\nLightGBM not installed. Install with: pip install lightgbm")
+    logger.warning("LightGBM not installed. Install with: pip install lightgbm")
 
 # Add XGBoost if available
 try:
@@ -666,7 +682,7 @@ try:
     xgb_model = xgb.XGBRegressor(n_estimators=100, random_state=42, objective='reg:squarederror')
     model_acc(xgb_model, "XGBoost")
 except ImportError:
-    print("\nXGBoost not installed. Install with: pip install xgboost")
+    logger.warning("XGBoost not installed. Install with: pip install xgboost")
 
 
 # In[58]:
@@ -677,7 +693,7 @@ from scipy.stats import randint, uniform
 
 # IMPROVEMENT: Enhanced hyperparameter tuning for Random Forest
 print("\n" + "="*60)
-print("HYPERPARAMETER TUNING - Random Forest")
+logger.info("HYPERPARAMETER TUNING - Random Forest")
 print("="*60)
 
 # Expanded parameter space with continuous distributions
@@ -702,12 +718,12 @@ grid_obj = RandomizedSearchCV(
     verbose=1
 )
 
-print("\nTraining Random Forest with RandomizedSearchCV (60 iterations)...")
+logger.info("Training Random Forest with RandomizedSearchCV (60 iterations)...")
 grid_fit = grid_obj.fit(x_train, y_train)
 
 best_model = grid_fit.best_estimator_
-print(f"\nBest parameters: {grid_fit.best_params_}")
-print(f"Best CV score: {grid_fit.best_score_:.4f}")
+logger.info("Best parameters: %s", grid_fit.best_params_)
+logger.info("Best CV score: %.4f", grid_fit.best_score_)
 best_model
 
 
@@ -716,7 +732,7 @@ best_model
 
 # IMPROVEMENT: Enhanced Gradient Boosting tuning
 print("\n" + "="*60)
-print("HYPERPARAMETER TUNING - Gradient Boosting")
+logger.info("HYPERPARAMETER TUNING - Gradient Boosting")
 print("="*60)
 
 # Improved parameter space based on best practices
@@ -742,12 +758,12 @@ gb_search = RandomizedSearchCV(
     verbose=1
 )
 
-print("\nTraining Gradient Boosting with RandomizedSearchCV (60 iterations)...")
+logger.info("Training Gradient Boosting with RandomizedSearchCV (60 iterations)...")
 gb_fit = gb_search.fit(x_train, y_train)
 
 best_gb_model = gb_fit.best_estimator_
-print(f"\nBest parameters: {gb_fit.best_params_}")
-print(f"Best CV score: {gb_fit.best_score_:.4f}")
+logger.info("Best parameters: %s", gb_fit.best_params_)
+logger.info("Best CV score: %.4f", gb_fit.best_score_)
 
 
 # In[58b]:
@@ -759,7 +775,7 @@ try:
     import lightgbm as lgb
     
     print("\n" + "="*60)
-    print("HYPERPARAMETER TUNING - LightGBM")
+    logger.info("HYPERPARAMETER TUNING - LightGBM")
     print("="*60)
     
     lgb_parameters = {
@@ -785,7 +801,7 @@ try:
         verbose=1
     )
     
-    print("\nTraining LightGBM with RandomizedSearchCV (60 iterations)...")
+    logger.info("Training LightGBM with RandomizedSearchCV (60 iterations)...")
     lgb_fit = lgb_search.fit(x_train, y_train)
     
     best_lgb_model = lgb_fit.best_estimator_
@@ -800,9 +816,9 @@ except ImportError:
 
 
 # Compare all best models
-print("\n" + "="*60)
-print("FINAL MODEL COMPARISON")
-print("="*60)
+logger.info("%s", "\n" + "="*60)
+logger.info("FINAL MODEL COMPARISON")
+logger.info("%s", "="*60)
 
 rf_r2, rf_mae, rf_rmse, rf_cv = model_acc(best_model, "Best Random Forest")
 gb_r2, gb_mae, gb_rmse, gb_cv = model_acc(best_gb_model, "Best Gradient Boosting")
@@ -821,10 +837,10 @@ if best_lgb_model is not None:
 best_model_name = max(models_dict, key=lambda k: models_dict[k][1])
 best_overall_model = models_dict[best_model_name][0]
 
-print(f"\n{'*'*60}")
-print(f"WINNER: {best_model_name}")
-print(f"R² Score: {models_dict[best_model_name][1]:.4f}")
-print(f"{'*'*60}")
+logger.info("%s", "\n" + "*"*60)
+logger.info("WINNER: %s", best_model_name)
+logger.info("R² Score: %.4f", models_dict[best_model_name][1])
+logger.info("%s", "*"*60)
 
 
 # In[59]:
@@ -841,24 +857,24 @@ print(f"{'*'*60}")
 # 7. Comprehensive model comparison across all tuned models
 
 # Feature importance analysis
-print("\n" + "="*60)
-print("FEATURE IMPORTANCE ANALYSIS")
-print("="*60)
+logger.info("%s", "\n" + "="*60)
+logger.info("FEATURE IMPORTANCE ANALYSIS")
+logger.info("%s", "="*60)
 
 feature_importance = pd.DataFrame({
     'feature': x_train.columns,
     'importance': best_overall_model.feature_importances_
 }).sort_values('importance', ascending=False)
 
-print("\nTop 15 Most Important Features:")
-print(feature_importance.head(15).to_string(index=False))
+logger.info("Top 15 Most Important Features:")
+logger.info("\n%s", feature_importance.head(15).to_string(index=False))
 
 # Final model performance
-print("\n" + "="*60)
-print("FINAL MODEL PERFORMANCE")
-print("="*60)
+logger.info("%s", "\n" + "="*60)
+logger.info("FINAL MODEL PERFORMANCE")
+logger.info("%s", "="*60)
 final_score = best_overall_model.score(x_test, y_test)
-print(f"Test R² Score: {final_score:.4f}")
+logger.info("Test R² Score: %.4f", final_score)
 
 
 # In[60]:
@@ -893,7 +909,7 @@ try:
             try:
                 os.remove(pickle_filename)
             except PermissionError:
-                print(f"ERROR: Cannot remove existing file '{pickle_filename}'. Permission denied.")
+                logger.error("Cannot remove existing file '%s'. Permission denied.", pickle_filename)
                 raise
         
         # Rename temp file to target file
@@ -918,33 +934,33 @@ try:
         raise
 
 except PermissionError:
-    print(f"ERROR: Permission denied when trying to write to '{pickle_filename}'.")
-    print("Please check that you have write permissions in the current directory.")
+    logger.exception("Permission denied when trying to write to '%s'.", pickle_filename)
+    logger.error("Please check that you have write permissions in the current directory.")
     raise
 except IOError as e:
-    print(f"ERROR: I/O error while writing model file: {e}")
-    print("This could be due to disk space issues or file system problems.")
+    logger.exception("I/O error while writing model file: %s", e)
+    logger.error("This could be due to disk space issues or file system problems.")
     raise
 except OSError as e:
-    print(f"ERROR: OS error while saving model: {e}")
+    logger.exception("OS error while saving model: %s", e)
     if e.errno == 28:  # ENOSPC - No space left on device
-        print("Disk is full. Please free up space and try again.")
+        logger.error("Disk is full. Please free up space and try again.")
     raise
 except pickle.PicklingError as e:
-    print(f"ERROR: Failed to pickle the model: {e}")
-    print("The model may contain unpicklable objects.")
+    logger.exception("Failed to pickle the model: %s", e)
+    logger.error("The model may contain unpicklable objects.")
     raise
 except Exception as e:
-    print(f"ERROR: Unexpected error while saving model: {e}")
+    logger.exception("Unexpected error while saving model: %s", e)
     raise
 finally:
     # Clean up temp file if it still exists
     if temp_filename and os.path.exists(temp_filename):
         try:
             os.remove(temp_filename)
-            print(f"Cleaned up temporary file: {temp_filename}")
+            logger.info("Cleaned up temporary file: %s", temp_filename)
         except Exception as cleanup_error:
-            print(f"WARNING: Could not clean up temporary file '{temp_filename}': {cleanup_error}")
+            logger.warning("Could not clean up temporary file '%s': %s", temp_filename, cleanup_error)
 
 
 # In[66]:
@@ -952,12 +968,12 @@ finally:
 
 # Note: Predictions need to be updated with the new feature set
 # The feature count has changed due to keeping 'Inches' and adding new features
-print(f"\nNumber of features: {len(x_train.columns)}")
-print("Sample prediction with best model:")
+logger.info("Number of features: %d", len(x_train.columns))
+logger.info("Sample prediction with best model:")
 # Use actual test data for demonstration
 sample_predictions = best_overall_model.predict(x_test[:5])
-print(f"Predictions for first 5 test samples: {sample_predictions}")
-print(f"Actual prices: {y_test.iloc[:5].values}")
+logger.info("Predictions for first 5 test samples: %s", sample_predictions)
+logger.info("Actual prices: %s", y_test.iloc[:5].values)
 
 
 # In[ ]:
