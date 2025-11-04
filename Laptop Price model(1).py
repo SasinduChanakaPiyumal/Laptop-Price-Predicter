@@ -133,6 +133,38 @@ dataset['ScreenResolution'].value_counts()
 dataset['Touchscreen'] = dataset['ScreenResolution'].apply(lambda x:1 if 'Touchscreen' in x else 0)
 dataset['IPS'] = dataset['ScreenResolution'].apply(lambda x:1 if 'IPS' in x else 0)
 
+# Extract screen resolution dimensions and calculate display metrics
+def extract_resolution_features(resolution_str):
+    """Extract width, height, total pixels, and PPI from resolution string."""
+    import re
+    
+    # Default values
+    width, height = 1920, 1080  # Default Full HD
+    
+    # Try to extract resolution pattern (e.g., "1920x1080", "2560x1440")
+    resolution_pattern = r'(\d+)x(\d+)'
+    match = re.search(resolution_pattern, str(resolution_str))
+    
+    if match:
+        width = int(match.group(1))
+        height = int(match.group(2))
+    
+    total_pixels = width * height
+    
+    return width, height, total_pixels
+
+# Apply resolution feature extraction
+resolution_features = dataset['ScreenResolution'].apply(extract_resolution_features)
+dataset['Screen_Width'] = resolution_features.apply(lambda x: x[0])
+dataset['Screen_Height'] = resolution_features.apply(lambda x: x[1])
+dataset['Total_Pixels'] = resolution_features.apply(lambda x: x[2])
+
+# Calculate PPI (Pixels Per Inch) using screen diagonal
+# PPI = sqrt(width^2 + height^2) / diagonal_inches
+dataset['PPI'] = dataset.apply(lambda row: 
+    np.sqrt(row['Screen_Width']**2 + row['Screen_Height']**2) / row['Inches'] 
+    if row['Inches'] > 0 else 0, axis=1)
+
 
 # In[22]:
 
@@ -220,7 +252,72 @@ dataset['OpSys']= dataset['OpSys'].apply(set_os)
 # In[37]:
 
 
-dataset=dataset.drop(columns=['laptop_ID','Inches','Product','ScreenResolution','Cpu','Gpu'])
+# First extract storage features from Memory column before dropping it
+# IMPROVEMENT: Enhanced Memory/Storage Feature Engineering
+# Extract storage type and capacity from Memory column
+print("Memory/Storage Feature Engineering...")
+
+def extract_storage_features(memory_string):
+    """
+    Extract storage type and total capacity from memory string.
+    Examples: "256GB SSD", "1TB HDD", "128GB SSD +  1TB HDD", "256GB Flash Storage"
+    """
+    memory_string = str(memory_string)
+    
+    # Initialize features
+    has_ssd = 0
+    has_hdd = 0
+    has_flash = 0
+    has_hybrid = 0
+    total_capacity_gb = 0
+    
+    # Check for storage types
+    if 'SSD' in memory_string:
+        has_ssd = 1
+    if 'HDD' in memory_string:
+        has_hdd = 1
+    if 'Flash' in memory_string:
+        has_flash = 1
+    if 'Hybrid' in memory_string:
+        has_hybrid = 1
+    
+    # Extract capacities
+    import re
+    
+    # Find all capacity values with TB or GB
+    tb_matches = re.findall(r'(\d+(?:\.\d+)?)\s*TB', memory_string)
+    gb_matches = re.findall(r'(\d+(?:\.\d+)?)\s*GB', memory_string)
+    
+    # Convert to GB and sum
+    for tb in tb_matches:
+        total_capacity_gb += float(tb) * 1024
+    for gb in gb_matches:
+        total_capacity_gb += float(gb)
+    
+    return has_ssd, has_hdd, has_flash, has_hybrid, total_capacity_gb
+
+# Apply storage feature extraction before dropping Memory column
+storage_features = dataset['Memory'].apply(extract_storage_features)
+dataset['Has_SSD'] = storage_features.apply(lambda x: x[0])
+dataset['Has_HDD'] = storage_features.apply(lambda x: x[1])
+dataset['Has_Flash'] = storage_features.apply(lambda x: x[2])
+dataset['Has_Hybrid'] = storage_features.apply(lambda x: x[3])
+dataset['Storage_Capacity_GB'] = storage_features.apply(lambda x: x[4])
+
+# Create derived storage features
+dataset['Storage_Type_Score'] = (
+    dataset['Has_SSD'] * 3 +      # SSD is premium
+    dataset['Has_Flash'] * 2.5 +  # Flash is also premium
+    dataset['Has_Hybrid'] * 2 +   # Hybrid is mid-range
+    dataset['Has_HDD'] * 1        # HDD is budget
+)
+
+print(f"Storage feature engineering complete.")
+print(f"Sample storage features:")
+print(dataset[['Memory', 'Has_SSD', 'Has_HDD', 'Storage_Capacity_GB', 'Storage_Type_Score']].head())
+
+# Now drop the columns including Memory (but keep Inches for later use in features)
+dataset=dataset.drop(columns=['laptop_ID','Product','ScreenResolution','Cpu','Gpu','Memory'])
 
 
 # In[38]:
@@ -345,93 +442,7 @@ with open('predictor.pickle','wb') as file:
 
 
 
-# IMPROVEMENT: Enhanced Memory/Storage Feature Engineering
-# Extract storage type and capacity from Memory column
-print("Memory/Storage Feature Engineering...")
-
-def extract_storage_features(memory_string):
-    """
-    Extract storage type and total capacity from memory string.
-    Examples: "256GB SSD", "1TB HDD", "128GB SSD +  1TB HDD", "256GB Flash Storage"
-    """
-    memory_string = str(memory_string)
-    
-    # Initialize features
-    has_ssd = 0
-    has_hdd = 0
-    has_flash = 0
-    has_hybrid = 0
-    total_capacity_gb = 0
-    
-    # Check for storage types
-    if 'SSD' in memory_string:
-        has_ssd = 1
-    if 'HDD' in memory_string:
-        has_hdd = 1
-    if 'Flash' in memory_string:
-        has_flash = 1
-    if 'Hybrid' in memory_string:
-        has_hybrid = 1
-    
-    # Extract capacities
-    import re
-    
-    # Find all capacity values with TB or GB
-    tb_matches = re.findall(r'(\d+(?:\.\d+)?)\s*TB', memory_string)
-    gb_matches = re.findall(r'(\d+(?:\.\d+)?)\s*GB', memory_string)
-    
-    # Convert to GB and sum
-    for tb in tb_matches:
-        total_capacity_gb += float(tb) * 1024
-    for gb in gb_matches:
-        total_capacity_gb += float(gb)
-    
-    return has_ssd, has_hdd, has_flash, has_hybrid, total_capacity_gb
-
-# Apply storage feature extraction
-storage_features = dataset['Memory'].apply(extract_storage_features)
-dataset['Has_SSD'] = storage_features.apply(lambda x: x[0])
-dataset['Has_HDD'] = storage_features.apply(lambda x: x[1])
-dataset['Has_Flash'] = storage_features.apply(lambda x: x[2])
-dataset['Has_Hybrid'] = storage_features.apply(lambda x: x[3])
-dataset['Storage_Capacity_GB'] = storage_features.apply(lambda x: x[4])
-
-# Create derived storage features
-dataset['Storage_Type_Score'] = (
-    dataset['Has_SSD'] * 3 +      # SSD is premium
-    dataset['Has_Flash'] * 2.5 +  # Flash is also premium
-    dataset['Has_Hybrid'] * 2 +   # Hybrid is mid-range
-    dataset['Has_HDD'] * 1        # HDD is budget
-)
-
-print(f"Storage feature engineering complete.")
-print(f"Sample storage features:")
-print(dataset[['Memory', 'Has_SSD', 'Has_HDD', 'Storage_Capacity_GB', 'Storage_Type_Score']].head())
-
-
-# In[37]:
-
-
-# Keep screen size and drop only redundant columns (now also drop Memory after feature extraction)
-dataset=dataset.drop(columns=['laptop_ID','Product','ScreenResolution','Cpu','Gpu','Memory'])
-
-
-# In[38]:
-
-
-dataset.head()
-
-
-# In[39]:
-
-
-dataset = pd.get_dummies(dataset)
-
-
-# In[40]:
-
-
-dataset.head()
+# Note: Storage features already extracted and Memory column already dropped above
 
 
 # In[41]:
@@ -496,15 +507,13 @@ print(f"Advanced interaction features created. Total features: {x.shape[1]}")
 # In[50]:
 
 
-pip install scikit-learn
+# pip install scikit-learn  # Run this in terminal, not as Python code
 
 
 # In[51]:
 
 
-from sklearn.model_selection import train_test_split
-# Add random_state for reproducibility
-x_train,x_test,y_train,y_test = train_test_split(x,y,test_size = 0.25, random_state=42)
+# train_test_split already done earlier - skip duplicate
 
 
 # In[52]:
