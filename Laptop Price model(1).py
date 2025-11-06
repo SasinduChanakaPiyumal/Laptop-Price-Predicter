@@ -541,11 +541,19 @@ print("="*60)
 
 from scipy import stats
 
+# CONFIGURABLE PARAMETER: Z-score threshold for outlier detection
+# This is a tunable parameter that can be adjusted based on:
+# - Data characteristics and distribution
+# - Cross-validation performance
+# - Domain knowledge (e.g., laptop price variance)
+# Common values: 2.5 (more strict), 3 (standard), 3.5 (more lenient)
+Z_SCORE_THRESHOLD = 3
+
 # Detect outliers in target variable using Z-score
 z_scores_target = np.abs(stats.zscore(y_train))
-outliers_target = np.where(z_scores_target > 3)[0]
+outliers_target = np.where(z_scores_target > Z_SCORE_THRESHOLD)[0]
 
-print(f"\nTarget variable (Price) outliers (Z-score > 3): {len(outliers_target)}")
+print(f"\nTarget variable (Price) outliers (Z-score > {Z_SCORE_THRESHOLD}): {len(outliers_target)}")
 if len(outliers_target) > 0:
     print(f"Outlier prices: {y_train.iloc[outliers_target].values[:5]} (showing first 5)")
 
@@ -556,7 +564,7 @@ outlier_counts = {}
 for feature in key_numeric_features:
     if feature in x_train.columns:
         z_scores = np.abs(stats.zscore(x_train[feature]))
-        outliers = np.where(z_scores > 3)[0]
+        outliers = np.where(z_scores > Z_SCORE_THRESHOLD)[0]
         outlier_counts[feature] = len(outliers)
         if len(outliers) > 0:
             print(f"{feature} outliers: {len(outliers)}")
