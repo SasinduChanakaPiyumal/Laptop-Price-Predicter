@@ -628,16 +628,91 @@ print("\n--- LINEAR MODELS (with scaling) ---")
 lr = LinearRegression()
 model_acc(lr, "Linear Regression", use_scaled=True)
 
-# IMPROVEMENT: Add Ridge Regression (L2 regularization)
+# IMPROVEMENT: Add Ridge Regression (L2 regularization) - baseline with default params
 ridge = Ridge(alpha=1.0, random_state=42)
-model_acc(ridge, "Ridge Regression", use_scaled=True)
+model_acc(ridge, "Ridge Regression (default)", use_scaled=True)
 
 lasso = Lasso(alpha=1.0, random_state=42)
 model_acc(lasso, "Lasso Regression (L1)", use_scaled=True)
 
-# IMPROVEMENT: Add ElasticNet (L1 + L2 regularization)
+# IMPROVEMENT: Add ElasticNet (L1 + L2 regularization) - baseline with default params
 elastic = ElasticNet(alpha=1.0, l1_ratio=0.5, random_state=42)
-model_acc(elastic, "ElasticNet (L1+L2)", use_scaled=True)
+model_acc(elastic, "ElasticNet (default)", use_scaled=True)
+
+# In[57a]:
+
+
+# IMPROVEMENT: Hyperparameter tuning for Ridge Regression
+print("\n" + "="*60)
+print("HYPERPARAMETER TUNING - Ridge Regression")
+print("="*60)
+
+ridge_parameters = {
+    'alpha': [0.001, 0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0],
+    'solver': ['auto', 'svd', 'cholesky', 'lsqr', 'sag', 'saga']
+}
+
+ridge_search = RandomizedSearchCV(
+    estimator=Ridge(random_state=42),
+    param_distributions=ridge_parameters,
+    n_iter=30,
+    cv=5,
+    scoring='r2',
+    random_state=42,
+    n_jobs=-1,
+    verbose=1
+)
+
+print("\nTraining Ridge with RandomizedSearchCV (30 iterations) on scaled data...")
+ridge_fit = ridge_search.fit(x_train_scaled_df, y_train)
+
+best_ridge_model = ridge_fit.best_estimator_
+print(f"\nBest parameters: {ridge_fit.best_params_}")
+print(f"Best CV score: {ridge_fit.best_score_:.4f}")
+
+# Evaluate best Ridge model
+ridge_r2, ridge_mae, ridge_rmse, ridge_cv = model_acc(best_ridge_model, "Best Ridge Regression", use_scaled=True)
+
+
+# In[57b]:
+
+
+# IMPROVEMENT: Hyperparameter tuning for ElasticNet
+print("\n" + "="*60)
+print("HYPERPARAMETER TUNING - ElasticNet")
+print("="*60)
+
+elastic_parameters = {
+    'alpha': [0.001, 0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0],
+    'l1_ratio': [0.1, 0.3, 0.5, 0.7, 0.9, 0.95, 0.99],
+    'max_iter': [1000, 2000, 5000],
+    'selection': ['cyclic', 'random']
+}
+
+elastic_search = RandomizedSearchCV(
+    estimator=ElasticNet(random_state=42),
+    param_distributions=elastic_parameters,
+    n_iter=40,
+    cv=5,
+    scoring='r2',
+    random_state=42,
+    n_jobs=-1,
+    verbose=1
+)
+
+print("\nTraining ElasticNet with RandomizedSearchCV (40 iterations) on scaled data...")
+elastic_fit = elastic_search.fit(x_train_scaled_df, y_train)
+
+best_elastic_model = elastic_fit.best_estimator_
+print(f"\nBest parameters: {elastic_fit.best_params_}")
+print(f"Best CV score: {elastic_fit.best_score_:.4f}")
+
+# Evaluate best ElasticNet model
+elastic_r2, elastic_mae, elastic_rmse, elastic_cv = model_acc(best_elastic_model, "Best ElasticNet", use_scaled=True)
+
+
+# In[57c]:
+
 
 # Tree-based models (don't need scaling)
 print("\n--- TREE-BASED MODELS (no scaling needed) ---")
@@ -674,6 +749,81 @@ except ImportError:
 
 from sklearn.model_selection import RandomizedSearchCV
 from scipy.stats import randint, uniform
+
+# In[57a]:
+
+
+# IMPROVEMENT: Hyperparameter tuning for Ridge Regression
+print("\n" + "="*60)
+print("HYPERPARAMETER TUNING - Ridge Regression")
+print("="*60)
+
+ridge_parameters = {
+    'alpha': [0.001, 0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0],
+    'solver': ['auto', 'svd', 'cholesky', 'lsqr', 'sag', 'saga']
+}
+
+ridge_search = RandomizedSearchCV(
+    estimator=Ridge(random_state=42),
+    param_distributions=ridge_parameters,
+    n_iter=30,
+    cv=5,
+    scoring='r2',
+    random_state=42,
+    n_jobs=-1,
+    verbose=1
+)
+
+print("\nTraining Ridge with RandomizedSearchCV (30 iterations) on scaled data...")
+ridge_fit = ridge_search.fit(x_train_scaled_df, y_train)
+
+best_ridge_model = ridge_fit.best_estimator_
+print(f"\nBest parameters: {ridge_fit.best_params_}")
+print(f"Best CV score: {ridge_fit.best_score_:.4f}")
+
+# Evaluate best Ridge model
+ridge_r2, ridge_mae, ridge_rmse, ridge_cv = model_acc(best_ridge_model, "Best Ridge Regression", use_scaled=True)
+
+
+# In[57b]:
+
+
+# IMPROVEMENT: Hyperparameter tuning for ElasticNet
+print("\n" + "="*60)
+print("HYPERPARAMETER TUNING - ElasticNet")
+print("="*60)
+
+elastic_parameters = {
+    'alpha': [0.001, 0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0],
+    'l1_ratio': [0.1, 0.3, 0.5, 0.7, 0.9, 0.95, 0.99],
+    'max_iter': [1000, 2000, 5000],
+    'selection': ['cyclic', 'random']
+}
+
+elastic_search = RandomizedSearchCV(
+    estimator=ElasticNet(random_state=42),
+    param_distributions=elastic_parameters,
+    n_iter=40,
+    cv=5,
+    scoring='r2',
+    random_state=42,
+    n_jobs=-1,
+    verbose=1
+)
+
+print("\nTraining ElasticNet with RandomizedSearchCV (40 iterations) on scaled data...")
+elastic_fit = elastic_search.fit(x_train_scaled_df, y_train)
+
+best_elastic_model = elastic_fit.best_estimator_
+print(f"\nBest parameters: {elastic_fit.best_params_}")
+print(f"Best CV score: {elastic_fit.best_score_:.4f}")
+
+# Evaluate best ElasticNet model
+elastic_r2, elastic_mae, elastic_rmse, elastic_cv = model_acc(best_elastic_model, "Best ElasticNet", use_scaled=True)
+
+
+# In[58]:
+
 
 # IMPROVEMENT: Enhanced hyperparameter tuning for Random Forest
 print("\n" + "="*60)
@@ -801,30 +951,42 @@ except ImportError:
 
 # Compare all best models
 print("\n" + "="*60)
-print("FINAL MODEL COMPARISON")
+print("FINAL MODEL COMPARISON - ALL TUNED MODELS")
 print("="*60)
 
+# Evaluate all tuned models
+print("\n--- Linear Models (scaled) ---")
+ridge_r2_final, ridge_mae_final, ridge_rmse_final, ridge_cv_final = model_acc(best_ridge_model, "Best Ridge Regression", use_scaled=True)
+elastic_r2_final, elastic_mae_final, elastic_rmse_final, elastic_cv_final = model_acc(best_elastic_model, "Best ElasticNet", use_scaled=True)
+
+print("\n--- Tree-based Models (unscaled) ---")
 rf_r2, rf_mae, rf_rmse, rf_cv = model_acc(best_model, "Best Random Forest")
 gb_r2, gb_mae, gb_rmse, gb_cv = model_acc(best_gb_model, "Best Gradient Boosting")
 
-# Compare with LightGBM if available
+# Build comprehensive model comparison dictionary
 models_dict = {
-    'Random Forest': (best_model, rf_r2),
-    'Gradient Boosting': (best_gb_model, gb_r2)
+    'Ridge Regression': (best_ridge_model, ridge_r2_final, True),  # (model, r2_score, use_scaled)
+    'ElasticNet': (best_elastic_model, elastic_r2_final, True),
+    'Random Forest': (best_model, rf_r2, False),
+    'Gradient Boosting': (best_gb_model, gb_r2, False)
 }
 
 if best_lgb_model is not None:
     lgb_r2, lgb_mae, lgb_rmse, lgb_cv = model_acc(best_lgb_model, "Best LightGBM")
-    models_dict['LightGBM'] = (best_lgb_model, lgb_r2)
+    models_dict['LightGBM'] = (best_lgb_model, lgb_r2, False)
 
-# Select the best overall model
+# Select the best overall model based on R² score
 best_model_name = max(models_dict, key=lambda k: models_dict[k][1])
 best_overall_model = models_dict[best_model_name][0]
+best_overall_r2 = models_dict[best_model_name][1]
 
 print(f"\n{'*'*60}")
 print(f"WINNER: {best_model_name}")
-print(f"R² Score: {models_dict[best_model_name][1]:.4f}")
+print(f"R² Score: {best_overall_r2:.4f}")
 print(f"{'*'*60}")
+
+# Store whether the best model needs scaling for later use
+best_model_uses_scaling = models_dict[best_model_name][2]
 
 
 # In[59]:
@@ -836,28 +998,56 @@ print(f"{'*'*60}")
 # 2. Advanced interaction features (RAM-Storage, Display-Storage, Weight-Size ratio, etc.)
 # 3. Feature scaling for linear models
 # 4. Additional models: Ridge, ElasticNet, LightGBM
-# 5. Enhanced hyperparameter tuning with broader parameter ranges (60 iterations)
-# 6. Outlier detection and reporting
-# 7. Comprehensive model comparison across all tuned models
+# 5. Hyperparameter tuning for Ridge (30 iter) and ElasticNet (40 iter) - NEW FIX
+# 6. Enhanced hyperparameter tuning for tree-based models (60 iterations each)
+# 7. Outlier detection and reporting
+# 8. Comprehensive model comparison across ALL tuned models (linear + tree-based)
+# 9. Proper handling of scaled vs unscaled data throughout pipeline
 
 # Feature importance analysis
 print("\n" + "="*60)
 print("FEATURE IMPORTANCE ANALYSIS")
 print("="*60)
 
-feature_importance = pd.DataFrame({
-    'feature': x_train.columns,
-    'importance': best_overall_model.feature_importances_
-}).sort_values('importance', ascending=False)
-
-print("\nTop 15 Most Important Features:")
-print(feature_importance.head(15).to_string(index=False))
+# Check if model has feature_importances_ (tree-based) or coef_ (linear)
+if hasattr(best_overall_model, 'feature_importances_'):
+    # Tree-based models
+    feature_importance = pd.DataFrame({
+        'feature': x_train.columns,
+        'importance': best_overall_model.feature_importances_
+    }).sort_values('importance', ascending=False)
+    
+    print("\nTop 15 Most Important Features:")
+    print(feature_importance.head(15).to_string(index=False))
+    
+elif hasattr(best_overall_model, 'coef_'):
+    # Linear models
+    feature_importance = pd.DataFrame({
+        'feature': x_train.columns,
+        'coefficient': best_overall_model.coef_,
+        'abs_coefficient': np.abs(best_overall_model.coef_)
+    }).sort_values('abs_coefficient', ascending=False)
+    
+    print("\nTop 15 Most Important Features (by absolute coefficient):")
+    print(feature_importance.head(15)[['feature', 'coefficient']].to_string(index=False))
+    print("\nNote: For linear models, coefficients indicate feature impact on price.")
+    print("Positive = increases price, Negative = decreases price")
+else:
+    print("\nFeature importance not available for this model type.")
 
 # Final model performance
 print("\n" + "="*60)
 print("FINAL MODEL PERFORMANCE")
 print("="*60)
-final_score = best_overall_model.score(x_test, y_test)
+
+# Use appropriate test data based on model type
+if best_model_uses_scaling:
+    final_score = best_overall_model.score(x_test_scaled_df, y_test)
+    print(f"Model Type: Linear (uses scaled features)")
+else:
+    final_score = best_overall_model.score(x_test, y_test)
+    print(f"Model Type: Tree-based (uses unscaled features)")
+    
 print(f"Test R² Score: {final_score:.4f}")
 
 
@@ -954,8 +1144,15 @@ finally:
 # The feature count has changed due to keeping 'Inches' and adding new features
 print(f"\nNumber of features: {len(x_train.columns)}")
 print("Sample prediction with best model:")
-# Use actual test data for demonstration
-sample_predictions = best_overall_model.predict(x_test[:5])
+
+# Use appropriate test data based on model type
+if best_model_uses_scaling:
+    sample_predictions = best_overall_model.predict(x_test_scaled_df[:5])
+    print("(Using scaled test data for linear model)")
+else:
+    sample_predictions = best_overall_model.predict(x_test[:5])
+    print("(Using unscaled test data for tree-based model)")
+    
 print(f"Predictions for first 5 test samples: {sample_predictions}")
 print(f"Actual prices: {y_test.iloc[:5].values}")
 

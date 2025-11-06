@@ -188,6 +188,106 @@ Based on these improvements, expected performance improvements:
 
 ---
 
+## 7. Software Testing and Validation
+
+### 7.1 Unit Tests for Feature Engineering
+**Implementation:** Comprehensive unit tests for data processing functions
+
+**Test Coverage:**
+- **Storage Feature Extraction Tests**:
+  - Test `extract_storage_features()` with various input formats
+  - Validate SSD/HDD/Flash/Hybrid detection accuracy
+  - Test capacity calculations (GB, TB, multiple drives)
+  - Edge cases: missing data, malformed strings, unusual formats
+
+- **Screen Resolution Parsing Tests**:
+  - Test extraction of width, height from resolution strings
+  - Validate PPI calculations across different screen sizes
+  - Test handling of Touchscreen and IPS flags
+
+- **Interaction Feature Tests**:
+  - Validate mathematical correctness of derived features
+  - Test handling of zero/null values in calculations
+  - Verify feature ranges are within expected bounds
+
+**Example Test Cases:**
+```python
+def test_storage_extraction():
+    assert extract_storage_features("256GB SSD") == (1, 0, 0, 0, 256)
+    assert extract_storage_features("1TB HDD + 256GB SSD") == (1, 1, 0, 0, 1280)
+    assert extract_storage_features("512GB Flash Storage") == (0, 0, 1, 0, 512)
+```
+
+### 7.2 Integration Tests for Pipeline
+**Implementation:** End-to-end pipeline validation
+
+**Test Coverage:**
+- **Data Preprocessing Pipeline**:
+  - Load sample data and verify all preprocessing steps execute without errors
+  - Validate that feature counts match expected values after transformations
+  - Test train-test split maintains data integrity
+
+- **Model Training Pipeline**:
+  - Verify all models can be instantiated and trained
+  - Test that hyperparameter tuning completes successfully
+  - Validate model serialization (pickle save/load)
+
+- **Prediction Pipeline**:
+  - Test that trained models can generate predictions on new data
+  - Verify predictions are in reasonable price ranges
+  - Test handling of missing or unexpected feature values
+
+### 7.3 Validation Tests
+**Implementation:** Model output and behavior validation
+
+**Test Coverage:**
+- **Prediction Sanity Checks**:
+  - Verify predictions are positive values (prices cannot be negative)
+  - Test that similar laptops get similar price predictions
+  - Validate prediction ranges match training data distribution
+
+- **Cross-Validation Tests**:
+  - Verify CV scores are consistent across multiple runs (reproducibility)
+  - Test that CV scores are within reasonable bounds (not overfitting)
+  - Validate fold stratification maintains target distribution
+
+- **Feature Importance Tests**:
+  - Test that feature importance values sum to 1.0 (or expected total)
+  - Verify important features make domain sense (e.g., RAM, SSD should rank high)
+  - Test that feature importance extraction works for all model types
+
+### 7.4 Regression Tests
+**Implementation:** Prevent performance degradation
+
+**Test Coverage:**
+- **Performance Baseline Tests**:
+  - Maintain test dataset with known expected R² scores
+  - Alert if model performance drops below baseline thresholds
+  - Track MAE and RMSE against historical benchmarks
+
+- **Data Quality Tests**:
+  - Verify no unexpected missing values introduced
+  - Test that feature scaling doesn't introduce NaN or inf values
+  - Validate outlier detection logic produces consistent results
+
+### 7.5 Test Execution and CI/CD
+**Best Practices:**
+- Run unit tests before every model training
+- Execute integration tests as part of deployment pipeline
+- Maintain test coverage above 80% for feature engineering functions
+- Use pytest fixtures for consistent test data
+- Implement continuous integration to catch regressions early
+
+**Benefits:**
+- **Code Correctness**: Ensures feature engineering logic works as intended
+- **Regression Prevention**: Catches bugs introduced by code changes
+- **Documentation**: Tests serve as executable documentation of expected behavior
+- **Confidence**: Allows safe refactoring and improvements without breaking existing functionality
+
+**Impact:** Comprehensive testing ensures that the ML system is robust, maintainable, and production-ready. It validates not just model performance metrics (R², MAE) but also the correctness of the underlying code components that generate features and process data.
+
+---
+
 ## Future Improvement Opportunities
 
 1. **Advanced Feature Engineering**:

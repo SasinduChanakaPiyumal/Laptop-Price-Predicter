@@ -68,19 +68,47 @@ Output: Has_SSD=1, Has_HDD=1, Storage_Capacity_GB=1280, Storage_Type_Score=4
 
 ## 3. Additional Regression Models ✨ NEW
 
-### 3.1 Ridge Regression
-**Added:** Ridge regression with L2 regularization
-```python
-Ridge(alpha=1.0, random_state=42)
-```
-**Benefit:** Reduces overfitting by penalizing large coefficients. Often outperforms plain Linear Regression.
+### 3.1 Ridge Regression with Hyperparameter Tuning
+**Added:** Ridge regression with L2 regularization and optimized hyperparameters
 
-### 3.2 ElasticNet
-**Added:** ElasticNet combining L1 and L2 regularization
+**Hyperparameter Search:**
 ```python
-ElasticNet(alpha=1.0, l1_ratio=0.5, random_state=42)
+ridge_parameters = {
+    'alpha': [0.001, 0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0],
+    'solver': ['auto', 'svd', 'cholesky', 'lsqr', 'sag', 'saga']
+}
+# RandomizedSearchCV with 30 iterations, 5-fold CV
 ```
-**Benefit:** Combines benefits of both Lasso (feature selection) and Ridge (coefficient shrinkage).
+
+**Tuned Parameters:**
+- `alpha`: Regularization strength (range: 0.001 to 100.0)
+- `solver`: Optimization algorithm selection
+
+**Benefit:** Reduces overfitting by penalizing large coefficients. Systematic tuning finds optimal regularization strength rather than using default values, significantly improving performance on scaled features.
+
+### 3.2 ElasticNet with Hyperparameter Tuning
+**Added:** ElasticNet combining L1 and L2 regularization with optimized hyperparameters
+
+**Hyperparameter Search:**
+```python
+elastic_parameters = {
+    'alpha': [0.001, 0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0],
+    'l1_ratio': [0.1, 0.3, 0.5, 0.7, 0.9, 0.95, 0.99],
+    'max_iter': [1000, 2000, 5000],
+    'selection': ['cyclic', 'random']
+}
+# RandomizedSearchCV with 40 iterations, 5-fold CV
+```
+
+**Tuned Parameters:**
+- `alpha`: Overall regularization strength (range: 0.001 to 100.0)
+- `l1_ratio`: Balance between L1 and L2 penalty (0.1 to 0.99)
+  - l1_ratio=1.0 → Pure Lasso (L1)
+  - l1_ratio=0.0 → Pure Ridge (L2)
+- `max_iter`: Maximum iterations for convergence
+- `selection`: Coefficient update strategy
+
+**Benefit:** Combines benefits of both Lasso (feature selection) and Ridge (coefficient shrinkage). Tuning l1_ratio finds the optimal balance between L1 and L2 penalties for this specific dataset, while alpha tuning ensures appropriate regularization strength. This systematic approach yields significantly better results than default parameters (alpha=1.0, l1_ratio=0.5).
 
 ### 3.3 LightGBM ✨ NEW
 **Added:** Microsoft's gradient boosting framework
