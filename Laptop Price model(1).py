@@ -98,7 +98,16 @@ dataset['Company'].value_counts()
 
 
 OTHER_COMPANIES = {'Samsung', 'Razer', 'Mediacom', 'Microsoft', 'Xiaomi', 'Vero', 'Chuwi', 'Google', 'Fujitsu', 'LG', 'Huawei'}
-def add_company(inpt):
+def add_company(inpt: str) -> str:
+    """
+    Categorizes laptop companies into 'Other' or their original name based on a predefined set of less common companies.
+
+    Args:
+        inpt (str): The name of the company.
+
+    Returns:
+        str: 'Other' if the company is in the `OTHER_COMPANIES` set, otherwise the original company name.
+    """
     return 'Other' if inpt in OTHER_COMPANIES else inpt
 dataset['Company'] = dataset['Company'].apply(add_company)
 
@@ -155,7 +164,17 @@ dataset['Cpu_name'].value_counts()
 # In[25]:
 
 
-def set_processor(name):
+def set_processor(name: str) -> str:
+    """
+    Categorizes CPU names into broader categories: 'Intel Core i7', 'Intel Core i5', 'Intel Core i3',
+    'AMD', or 'Other'.
+
+    Args:
+        name (str): The full name of the CPU.
+
+    Returns:
+        str: The categorized CPU name.
+    """
     if name == 'Intel Core i7' or name == 'Intel Core i5' or name == 'Intel Core i3':
         return name
     else:
@@ -205,7 +224,16 @@ dataset['OpSys'].value_counts()
 # In[34]:
 
 
-def set_os(inpt):
+def set_os(inpt: str) -> str:
+    """
+    Categorizes operating systems into broader categories: 'Windows', 'Mac', 'Linux', or 'Other'.
+
+    Args:
+        inpt (str): The name of the operating system.
+
+    Returns:
+        str: The categorized operating system name.
+    """
     if inpt == 'Windows 10' or inpt == 'Windows 7' or inpt == 'Windows 10 S':
         return 'Windows'
     elif inpt == 'macOS' or inpt == 'Mac OS X':
@@ -273,10 +301,18 @@ x_train.shape,x_test.shape
 # In[54]:
 
 
-def model_acc(model):
+from sklearn.base import BaseEstimator # Import BaseEstimator for type hinting
+
+def model_acc(model: BaseEstimator) -> None:
+    """
+    Trains a given scikit-learn model on global training data and prints its accuracy on global test data.
+
+    Args:
+        model (BaseEstimator): The scikit-learn model estimator to be trained and evaluated.
+    """
     model.fit(x_train,y_train)
     acc = model.score(x_test, y_test)
-    print(str(model)+'-->'+str(acc))
+    print(f'{str(model)} --> {acc:.4f}')
 
 
 # In[57]:
@@ -572,14 +608,26 @@ print("Tree-based models handle outliers well without removal.")
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import cross_val_score
 
-def model_acc(model, model_name="Model", use_scaled=False):
+from typing import Tuple, Any
+
+def model_acc(
+    model: Any,  # Type hint for sklearn model is typically Any as it's a generic estimator
+    model_name: str = "Model",
+    use_scaled: bool = False
+) -> Tuple[float, float, float, float]:
     """
-    Improved model evaluation with multiple metrics.
-    
+    Improved model evaluation with multiple metrics (R², MAE, RMSE, Cross-validation R²).
+
     Args:
-        model: sklearn model to evaluate
-        model_name: Name for display
-        use_scaled: If True, use scaled data (for linear models)
+        model: The scikit-learn model estimator to evaluate.
+        model_name (str): A descriptive name for the model, used in print statements.
+        use_scaled (bool): If True, scaled training and testing data (x_train_scaled_df,
+                           x_test_scaled_df) will be used. Otherwise, unscaled data
+                           (x_train, x_test) will be used.
+
+    Returns:
+        Tuple[float, float, float, float]: A tuple containing the R² score, Mean Absolute Error (MAE),
+                                         Root Mean Squared Error (RMSE), and the mean Cross-validation R² score.
     """
     # Choose data based on scaling requirement
     if use_scaled:
