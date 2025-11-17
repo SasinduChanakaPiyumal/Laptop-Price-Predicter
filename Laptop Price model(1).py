@@ -361,8 +361,23 @@ best_model.predict([[8,0.9,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0
 # In[ ]:
 
 
-
-
+def extract_storage_features(memory_string):
+    """
+    Extract storage type features and total capacity from memory string.
+    
+    Args:
+        memory_string: String containing memory/storage information
+        
+    Returns:
+        tuple: (has_ssd, has_hdd, has_flash, has_hybrid, total_capacity_gb)
+    """
+    # Initialize variables
+    has_ssd = 0
+    has_hdd = 0
+    has_flash = 0
+    has_hybrid = 0
+    total_capacity_gb = 0.0
+    
     # Check for storage types
     if 'SSD' in memory_string:
         has_ssd = 1
