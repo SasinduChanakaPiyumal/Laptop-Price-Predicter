@@ -215,7 +215,44 @@ _None currently._
 
 ## Contact
 
-For security concerns or to report vulnerabilities, contact: [Maintainer Email/Contact]
+### Reporting Security Vulnerabilities
+
+We take security vulnerabilities seriously and appreciate responsible disclosure. Please use one of the following methods to report security issues:
+
+#### Preferred Method: GitHub Security Advisories
+If this project is hosted on GitHub, please use the **Security Advisories** feature:
+1. Navigate to the repository's **Security** tab
+2. Click **"Report a vulnerability"**
+3. Fill out the private vulnerability report form
+
+This method ensures confidential disclosure and allows us to coordinate a fix before public disclosure.
+
+#### Email Contact
+**Security Email:** security@[your-domain].com
+
+**Note to Maintainers:** Replace `security@[your-domain].com` with your actual security contact email. Best practices:
+- Use a dedicated security email address (e.g., `security@yourdomain.com`)
+- Ensure the email is monitored regularly (at least daily)
+- Set up a distribution list if multiple people should be notified
+- Consider using a PGP key for encrypted communications (and list the key ID/fingerprint here)
+
+#### What to Include in Your Report
+- Description of the vulnerability
+- Steps to reproduce the issue
+- Potential impact and severity assessment
+- Any suggested fixes or mitigations (optional)
+- Your contact information for follow-up questions
+
+#### Our Commitment
+- We will acknowledge receipt of your report within **48 hours**
+- We will provide a detailed response within **7 days**, including our assessment and timeline for fixes
+- We will keep you informed of our progress toward remediation
+- We will credit you for the discovery (unless you prefer to remain anonymous)
+
+#### Security Disclosure Policy
+- Please do not publicly disclose the vulnerability until we have released a fix
+- We aim to release patches for critical vulnerabilities within **30 days**
+- We will coordinate the public disclosure date with you when possible
 
 ---
 
