@@ -1,0 +1,227 @@
+# =============================================================================
+# Web Scraping Data Collection - Configuration Template
+# =============================================================================
+# This configuration file controls all aspects of the web scraping pipeline.
+# Environment-specific overrides: Use config.dev.yaml or config.prod.yaml
+# =============================================================================
+
+# Environment Configuration
+# -----------------------------------------------------------------------------
+environment: "dev"  # Options: dev, prod
+
+# Target URLs Configuration
+# -----------------------------------------------------------------------------
+# Define all e-commerce sites to scrape
+target_urls:
+  amazon:
+    base_url: "https://www.amazon.com"
+    search_paths:
+      - "/s?k=laptops"
+      - "/s?k=electronics"
+    product_url_pattern: "/dp/{product_id}"
+    enabled: true
+  
+  ebay:
+    base_url: "https://www.ebay.com"
+    search_paths:
+      - "/sch/i.html?_nkw=laptops"
+      - "/sch/i.html?_nkw=electronics"
+    product_url_pattern: "/itm/{product_id}"
+    enabled: true
+  
+  # Add more sites as needed
+  custom_site:
+    base_url: "https://example.com"
+    search_paths: []
+    product_url_pattern: "/product/{product_id}"
+    enabled: false
+
+# CSS Selectors Configuration
+# -----------------------------------------------------------------------------
+# Site-specific CSS selectors for data extraction
+css_selectors:
+  amazon:
+    product_title: "span#productTitle"
+    product_price: "span.a-price-whole"
+    product_rating: "span.a-icon-alt"
+    product_reviews: "span#acrCustomerReviewText"
+    product_image: "img#landingImage"
+    product_description: "div#productDescription"
+    availability: "div#availability span"
+    search_results: "div[data-component-type='s-search-result']"
+    next_page: "a.s-pagination-next"
+  
+  ebay:
+    product_title: "h1.x-item-title__mainTitle"
+    product_price: "div.x-price-primary span.ux-textspans"
+    product_rating: "div.x-star-rating span.ux-textspans"
+    product_reviews: "a.reviews-header__review-count"
+    product_image: "img.ux-image-magnify__image"
+    product_description: "div.x-item-description"
+    availability: "div.x-quantity__availability"
+    search_results: "div.s-item__wrapper"
+    next_page: "a.pagination__next"
+  
+  # Add selectors for other sites as needed
+
+# Rate Limiting Configuration
+# -----------------------------------------------------------------------------
+# Control request frequency to respect servers and avoid blocking
+rate_limits:
+  requests_per_minute: 30        # Maximum requests per minute per site
+  requests_per_hour: 1000        # Maximum requests per hour per site
+  delay_between_requests: 2.0    # Seconds to wait between requests (min)
+  delay_randomization: 1.0       # Random jitter to add (0-N seconds)
+  max_retries: 3                 # Number of retries on failure
+  retry_backoff: 2.0             # Exponential backoff multiplier
+  timeout: 30                    # Request timeout in seconds
+  concurrent_requests: 1         # Number of concurrent requests (be careful!)
+
+# Database Configuration
+# -----------------------------------------------------------------------------
+# Settings for data storage
+database:
+  type: "sqlite"                       # Options: sqlite, postgresql, mysql
+  path: "data/scraper_data.db"        # For SQLite
+  # For PostgreSQL/MySQL (uncomment and configure as needed):
+  # host: "localhost"
+  # port: 5432
+  # username: "scraper_user"
+  # password: "${DB_PASSWORD}"         # Use environment variables for sensitive data
+  # database: "scraper_db"
+  
+  # Table configuration
+  tables:
+    products: "products"
+    scrape_logs: "scrape_logs"
+    errors: "scrape_errors"
+
+# File Storage Configuration
+# -----------------------------------------------------------------------------
+# Settings for CSV and file exports
+file_storage:
+  output_directory: "data/outputs"
+  csv_format:
+    encoding: "utf-8"
+    delimiter: ","
+    quoting: "minimal"
+  filename_pattern: "{site}_{date}_{timestamp}.csv"  # Available vars: site, date, timestamp
+  archive_old_files: true
+  archive_directory: "data/archives"
+  archive_after_days: 30
+
+# User Agent Configuration
+# -----------------------------------------------------------------------------
+# User agents for HTTP requests (rotated to avoid detection)
+user_agents:
+  rotate: true  # Randomly rotate user agents
+  list:
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    - "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0"
+    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15"
+
+# Proxy Configuration
+# -----------------------------------------------------------------------------
+# Proxy settings for requests (optional)
+proxy:
+  enabled: false
+  rotate: false
+  list: []
+  # Example:
+  # - "http://proxy1.example.com:8080"
+  # - "http://proxy2.example.com:8080"
+
+# Logging Configuration
+# -----------------------------------------------------------------------------
+# Control logging behavior
+logging:
+  level: "INFO"                    # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "logs/scraper.log"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  max_file_size_mb: 10
+  backup_count: 5                  # Number of backup log files to keep
+  console_output: true             # Also log to console
+
+# Scheduling Configuration
+# -----------------------------------------------------------------------------
+# Automated scraping schedule (uses 'schedule' library)
+scheduling:
+  enabled: false                   # Set to true to enable scheduled runs
+  jobs:
+    - name: "daily_scrape"
+      frequency: "daily"
+      time: "02:00"                # 24-hour format
+      sites: ["amazon", "ebay"]
+      enabled: true
+    
+    - name: "hourly_check"
+      frequency: "hourly"
+      minute: 0                    # Run at the top of each hour
+      sites: ["amazon"]
+      enabled: false
+
+# Data Validation Configuration
+# -----------------------------------------------------------------------------
+# Rules for validating scraped data
+validation:
+  required_fields:
+    - "product_title"
+    - "product_price"
+  price_range:
+    min: 0
+    max: 100000
+  title_min_length: 5
+  drop_duplicates: true
+  duplicate_check_fields:
+    - "product_title"
+    - "product_url"
+
+# Error Handling Configuration
+# -----------------------------------------------------------------------------
+# Configure how errors are handled
+error_handling:
+  continue_on_error: true          # Continue scraping other items on error
+  log_errors: true
+  notify_on_critical: false        # Set to true to enable notifications
+  notification_email: ""           # Email for critical error notifications
+  max_consecutive_errors: 10       # Stop scraping after N consecutive errors
+
+# Cache Configuration
+# -----------------------------------------------------------------------------
+# HTTP response caching to reduce redundant requests
+cache:
+  enabled: true
+  directory: "data/cache"
+  expiry_hours: 24                 # Hours before cache expires
+  cache_policy: "default"          # Options: default, aggressive, minimal
+
+# Development Settings
+# -----------------------------------------------------------------------------
+# Settings for development and testing
+development:
+  dry_run: false                   # If true, simulate scraping without making requests
+  limit_pages: null                # Limit number of pages to scrape (null = no limit)
+  limit_items: null                # Limit number of items to scrape (null = no limit)
+  debug_mode: false                # Enable verbose debugging output
+  save_html: false                 # Save raw HTML for debugging
+  html_directory: "data/debug/html"
+
+# =============================================================================
+# Environment-Specific Overrides
+# =============================================================================
+# To create environment-specific configs:
+# 1. Copy this file to config.dev.yaml or config.prod.yaml
+# 2. Modify only the settings that need to change
+# 3. The application will load config.yaml first, then apply environment overrides
+#
+# Production recommendations:
+# - Set environment: "prod"
+# - Increase rate_limits.delay_between_requests
+# - Enable logging with appropriate levels
+# - Enable scheduling for automated runs
+# - Disable development.debug_mode
+# - Enable cache for efficiency
+# - Configure proper database (PostgreSQL recommended for production)
+# =============================================================================
