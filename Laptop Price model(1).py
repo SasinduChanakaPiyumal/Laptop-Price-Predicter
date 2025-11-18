@@ -870,7 +870,7 @@ x_train.columns
 # In[68]:
 
 
-import pickle
+import joblib
 import os
 import tempfile
 
