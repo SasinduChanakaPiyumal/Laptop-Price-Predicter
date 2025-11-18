@@ -298,7 +298,7 @@ This method ensures confidential disclosure and allows us to coordinate a fix be
 
 5. **Commit updates:**
    ```bash
-   git add requirements.in requirements.txt SECURITY.md .gitignore
+   git add requirements.in requirements.txt security.md .gitignore
    git commit -m "security: Add dependency and secret scanning infrastructure"
    ```
 
