@@ -6,12 +6,24 @@
 
 import pandas as pd
 import numpy as np
+from data_processor import (
+    load_and_preprocess_data,
+    process_company_data,
+    extract_screen_features,
+    process_cpu_data,
+    process_gpu_data,
+    process_os_data,
+    process_storage_data,
+    drop_unnecessary_columns,
+    one_hot_encode_features,
+    create_interaction_features
+)
 
 
 # In[2]:
 
 
-dataset = pd.read_csv("laptop_price.csv",encoding = 'latin-1')
+dataset = load_and_preprocess_data("laptop_price.csv")
 
 
 # In[3]:
@@ -46,8 +58,7 @@ dataset.isnull().sum()
 
 # In[8]:
 
-
-dataset['Ram'] = dataset['Ram'].str.replace('GB', '', regex=False).astype('int32')
+# RAM and Weight preprocessing is now handled inside load_and_preprocess_data
 
 
 # In[9]:
@@ -58,8 +69,7 @@ dataset.head()
 
 # In[10]:
 
-
-dataset['Weight'] = dataset['Weight'].str.replace('kg', '', regex=False).astype('float64')
+# RAM and Weight preprocessing is now handled inside load_and_preprocess_data
 
 
 # In[11]:
@@ -97,10 +107,7 @@ dataset['Company'].value_counts()
 # In[16]:
 
 
-OTHER_COMPANIES = {'Samsung', 'Razer', 'Mediacom', 'Microsoft', 'Xiaomi', 'Vero', 'Chuwi', 'Google', 'Fujitsu', 'LG', 'Huawei'}
-def add_company(inpt):
-    return 'Other' if inpt in OTHER_COMPANIES else inpt
-dataset['Company'] = dataset['Company'].apply(add_company)
+dataset = process_company_data(dataset)
 
 
 # In[17]:
@@ -130,8 +137,7 @@ dataset['ScreenResolution'].value_counts()
 # In[21]:
 
 
-dataset['Touchscreen'] = dataset['ScreenResolution'].apply(lambda x:1 if 'Touchscreen' in x else 0)
-dataset['IPS'] = dataset['ScreenResolution'].apply(lambda x:1 if 'IPS' in x else 0)
+dataset = extract_screen_features(dataset)
 
 
 # In[22]:
@@ -143,7 +149,7 @@ dataset['Cpu'].value_counts()
 # In[23]:
 
 
-dataset['Cpu_name']= dataset['Cpu'].apply(lambda x:" ".join(x.split()[0:3]))
+dataset = process_cpu_data(dataset)
 
 
 # In[24]:
@@ -154,16 +160,7 @@ dataset['Cpu_name'].value_counts()
 
 # In[25]:
 
-
-def set_processor(name):
-    if name == 'Intel Core i7' or name == 'Intel Core i5' or name == 'Intel Core i3':
-        return name
-    else:
-        if name.split()[0] == 'AMD':
-            return 'AMD'
-        else:
-            return 'Other'
-dataset['Cpu_name'] = dataset['Cpu_name'].apply(set_processor)
+# CPU data processing is now handled inside process_cpu_data
 
 
 # In[26]:
@@ -175,7 +172,7 @@ dataset['Cpu_name'].value_counts()
 # In[27]:
 
 
-dataset['Gpu_name']= dataset['Gpu'].apply(lambda x:" ".join(x.split()[0:1]))
+dataset = process_gpu_data(dataset)
 
 
 # In[30]:
@@ -186,8 +183,7 @@ dataset['Gpu_name'].value_counts()
 
 # In[29]:
 
-
-dataset = dataset[dataset['Gpu_name'] != 'ARM']
+# GPU data processing is now handled inside process_gpu_data
 
 
 # In[32]:
@@ -205,22 +201,13 @@ dataset['OpSys'].value_counts()
 # In[34]:
 
 
-def set_os(inpt):
-    if inpt == 'Windows 10' or inpt == 'Windows 7' or inpt == 'Windows 10 S':
-        return 'Windows'
-    elif inpt == 'macOS' or inpt == 'Mac OS X':
-        return 'Mac'
-    elif inpt == 'Linux':
-        return inpt
-    else:
-        return 'Other'
-dataset['OpSys']= dataset['OpSys'].apply(set_os)
+dataset = process_os_data(dataset)
 
 
 # In[37]:
 
 
-dataset=dataset.drop(columns=['laptop_ID','Inches','Product','ScreenResolution','Cpu','Gpu'])
+dataset = drop_unnecessary_columns(dataset)
 
 
 # In[38]:
@@ -232,7 +219,7 @@ dataset.head()
 # In[39]:
 
 
-dataset = pd.get_dummies(dataset)
+dataset = one_hot_encode_features(dataset)
 
 
 # In[40]:
@@ -363,47 +350,8 @@ best_model.predict([[8,0.9,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0
 
 
 
-    # Check for storage types
-    if 'SSD' in memory_string:
-        has_ssd = 1
-    if 'HDD' in memory_string:
-        has_hdd = 1
-    if 'Flash' in memory_string:
-        has_flash = 1
-    if 'Hybrid' in memory_string:
-        has_hybrid = 1
-    
-    # Extract capacities
-    import re
-    
-    # Find all capacity values with TB or GB
-    tb_matches = re.findall(r'(\d+(?:\.\d+)?)\s*TB', memory_string)
-    gb_matches = re.findall(r'(\d+(?:\.\d+)?)\s*GB', memory_string)
-    
-    # Convert to GB and sum
-    for tb in tb_matches:
-        total_capacity_gb += float(tb) * 1024
-    for gb in gb_matches:
-        total_capacity_gb += float(gb)
-    
-    return has_ssd, has_hdd, has_flash, has_hybrid, total_capacity_gb
-
-# Apply storage feature extraction
-storage_features = dataset['Memory'].apply(extract_storage_features)
-dataset['Has_SSD'] = storage_features.apply(lambda x: x[0])
-dataset['Has_HDD'] = storage_features.apply(lambda x: x[1])
-dataset['Has_Flash'] = storage_features.apply(lambda x: x[2])
-dataset['Has_Hybrid'] = storage_features.apply(lambda x: x[3])
-dataset['Storage_Capacity_GB'] = storage_features.apply(lambda x: x[4])
-
-# Create derived storage features
-dataset['Storage_Type_Score'] = (
-    dataset['Has_SSD'] * 3 +      # SSD is premium
-    dataset['Has_Flash'] * 2.5 +  # Flash is also premium
-    dataset['Has_Hybrid'] * 2 +   # Hybrid is mid-range
-    dataset['Has_HDD'] * 1        # HDD is budget
-)
-
+# Storage feature extraction and processing
+dataset = process_storage_data(dataset)
 print(f"Storage feature engineering complete.")
 print(f"Sample storage features:")
 print(dataset[['Memory', 'Has_SSD', 'Has_HDD', 'Storage_Capacity_GB', 'Storage_Type_Score']].head())
@@ -425,7 +373,7 @@ dataset.head()
 # In[39]:
 
 
-dataset = pd.get_dummies(dataset)
+dataset = one_hot_encode_features(dataset)
 
 
 # In[40]:
@@ -445,51 +393,7 @@ y = dataset['Price_euros']
 
 
 # Create interaction features for better predictions
-# RAM and CPU quality interaction (high RAM with good CPU = premium laptop)
-# These will be added after dummy encoding, so we need to calculate them from the encoded features
-# Store numeric columns before creating interactions
-numeric_cols = ['Ram', 'Weight', 'Inches', 'Touchscreen', 'IPS', 'Screen_Width', 'Screen_Height', 'Total_Pixels', 'PPI']
-
-# Create polynomial and interaction features for key numeric features
-from sklearn.preprocessing import PolynomialFeatures
-key_features = ['Ram', 'Weight', 'Total_Pixels', 'PPI']
-poly_feature_names = [col for col in x.columns if any(feat in str(col) for feat in key_features)]
-
-# Add RAM squared (premium laptops may have non-linear pricing with RAM)
-if 'Ram' in x.columns:
-    x['Ram_squared'] = x['Ram'] ** 2
-    
-# Add interaction between screen quality and size
-if 'Total_Pixels' in x.columns and 'Inches' in x.columns:
-    x['Screen_Quality'] = x['Total_Pixels'] / 1000000 * x['Inches']  # Normalized quality metric
-
-# IMPROVEMENT: Additional advanced interaction features
-print("\nCreating advanced interaction features...")
-
-# Storage capacity * SSD indicator (SSD with high capacity is premium)
-if 'Storage_Capacity_GB' in x.columns and 'Has_SSD' in x.columns:
-    x['Premium_Storage'] = x['Storage_Capacity_GB'] * (x['Has_SSD'] + 1) / 1000  # Normalized
-
-# RAM * Storage Type Score (high RAM + fast storage = workstation/gaming)
-if 'Ram' in x.columns and 'Storage_Type_Score' in x.columns:
-    x['RAM_Storage_Quality'] = x['Ram'] * x['Storage_Type_Score']
-
-# Screen quality * Storage quality (premium display + premium storage)
-if 'PPI' in x.columns and 'Storage_Type_Score' in x.columns:
-    x['Display_Storage_Premium'] = x['PPI'] * x['Storage_Type_Score']
-
-# Weight to size ratio (portability factor)
-if 'Weight' in x.columns and 'Inches' in x.columns:
-    x['Weight_Size_Ratio'] = x['Weight'] / x['Inches']
-
-# Total pixels per RAM (graphics capability estimation)
-if 'Total_Pixels' in x.columns and 'Ram' in x.columns:
-    x['Pixels_Per_RAM'] = x['Total_Pixels'] / (x['Ram'] * 1000000)
-
-# Storage per inch (how much storage per screen size)
-if 'Storage_Capacity_GB' in x.columns and 'Inches' in x.columns:
-    x['Storage_Per_Inch'] = x['Storage_Capacity_GB'] / x['Inches']
-
+x = create_interaction_features(x)
 print(f"Advanced interaction features created. Total features: {x.shape[1]}")
 
 
