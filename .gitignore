@@ -54,3 +54,37 @@ env/
 
 # pip-tools
 *.txt.bak
+
+# Web scraping outputs and artifacts
+# -----------------------------------------------------------------------------
+# Scraper data outputs
+*.csv
+*.db
+*.sqlite
+*.sqlite3
+
+# Scraper logs
+*.log
+logs/
+*.log.*
+
+# Scraper cache and temporary files
+data/cache/
+data/outputs/
+data/archives/
+data/debug/
+__scrapy_cache__/
+.scrapy/
+
+# Environment-specific configs (keep template only)
+config.dev.yaml
+config.prod.yaml
+config.local.yaml
+
+# Credentials and secrets (never commit these!)
+.env
+.env.*
+secrets.yaml
+credentials.json
+*.key
+*.pem

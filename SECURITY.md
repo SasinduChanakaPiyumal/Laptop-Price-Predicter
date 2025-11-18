@@ -302,6 +302,99 @@ For security concerns or to report vulnerabilities, contact: [Maintainer Email/C
    git commit -m "security: Add dependency and secret scanning infrastructure"
    ```
 
+---
+
+## Web Scraping Dependencies - Security Audit
+
+### New Dependencies Added
+
+The following web scraping dependencies have been added to `requirements.in`:
+
+- **beautifulsoup4>=4.12.0** - HTML/XML parser for web scraping
+- **requests>=2.31.0** - HTTP library for making requests
+- **schedule>=1.2.0** - Job scheduling for automated scraping
+- **lxml>=4.9.0** - Fast XML/HTML parser (used by BeautifulSoup)
+
+### Required Actions
+
+**IMPORTANT:** After adding these dependencies, you MUST:
+
+1. **Regenerate requirements.txt with hashes:**
+   ```bash
+   # Ensure pip-tools is installed
+   pip install pip-tools
+   
+   # Generate requirements.txt with security hashes
+   pip-compile --generate-hashes requirements.in
+   
+   # This will:
+   # - Resolve all dependencies and sub-dependencies
+   # - Add SHA256 hashes for verification
+   # - Ensure reproducible builds
+   ```
+
+2. **Install the updated dependencies:**
+   ```bash
+   # Sync your environment with the new requirements
+   pip-sync requirements.txt
+   ```
+
+3. **Run security audit on new dependencies:**
+   ```bash
+   # Scan for known vulnerabilities
+   pip-audit -r requirements.txt
+   
+   # Expected output: Vulnerabilities found report (if any)
+   # Document any findings in the "Dependency Vulnerability Findings" section above
+   ```
+
+4. **Review and document findings:**
+   - If vulnerabilities are found, assess their impact on this project
+   - For critical/high severity: upgrade to patched versions
+   - For medium/low severity: evaluate risk and document acceptance if needed
+   - Update the "Active Vulnerabilities" section above with findings
+
+5. **Commit the changes:**
+   ```bash
+   git add requirements.in requirements.txt SECURITY.md
+   git commit -m "feat: Add web scraping dependencies with security audit"
+   ```
+
+### Security Considerations for Web Scraping
+
+When using these dependencies for web scraping:
+
+**Network Security:**
+- Always validate SSL certificates (avoid `verify=False`)
+- Use HTTPS when available
+- Implement proper timeout values
+- Rotate user agents responsibly
+- Respect robots.txt and rate limits
+
+**Data Security:**
+- Sanitize scraped data before storage
+- Never commit scraped data containing PII
+- Be cautious with eval() or exec() on scraped content
+- Validate and escape HTML before rendering
+
+**Dependency-Specific Risks:**
+- **requests**: Known for occasional CVEs; keep updated
+- **lxml**: C-based parser; vulnerabilities can have memory implications
+- **beautifulsoup4**: Generally safe but depends on underlying parser (lxml)
+- **schedule**: Minimal attack surface; low risk
+
+**Monitoring:**
+- Regularly update dependencies (monthly minimum)
+- Subscribe to security advisories for these packages
+- Re-run pip-audit after any dependency updates
+
+### Compliance Notes
+
+- Ensure scraped data complies with website Terms of Service
+- Respect GDPR/CCPA if scraping personal data
+- Implement proper rate limiting to avoid DoS concerns
+- Document legal review of target sites if applicable
+
 ### Regular Maintenance
 
 - Run `pip-audit` before each commit/push
