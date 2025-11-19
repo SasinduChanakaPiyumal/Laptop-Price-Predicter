@@ -1,0 +1,18 @@
+# Pre-commit hooks for automated security scanning
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+# Documentation: https://pre-commit.com/
+
+repos:
+  # Gitleaks - Scan for secrets and credentials
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+
+  # pip-audit - Check Python dependencies for known vulnerabilities
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.6.1
+    hooks:
+      - id: pip-audit
+        args: ['--requirement', 'requirements.txt']

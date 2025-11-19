@@ -1,6 +1,9 @@
 # Security scan outputs - never commit these
 gitleaks.sarif
 *.sarif
+pip-audit-results.json
+pip-audit.sarif
+gitleaks-report.json
 
 # Python artifacts
 __pycache__/
@@ -54,3 +57,6 @@ env/
 
 # pip-tools
 *.txt.bak
+
+# Pre-commit
+.pre-commit-config.yaml.backup

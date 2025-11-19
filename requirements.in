@@ -7,3 +7,7 @@ scikit-learn>=1.3.0
 
 # Advanced gradient boosting (optional but used in code)
 xgboost>=2.0.0
+lightgbm>=4.0.0
+
+# Development and security tools
+pre-commit>=3.0.0
