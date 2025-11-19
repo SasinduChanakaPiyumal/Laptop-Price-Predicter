@@ -870,7 +870,7 @@ x_train.columns
 # In[68]:
 
 
-import pickle
+import joblib
 import os
 import tempfile
 
@@ -885,7 +885,7 @@ try:
     try:
         # Write to temporary file
         with os.fdopen(temp_fd, 'wb') as temp_file:
-            pickle.dump(best_overall_model, temp_file)
+            joblib.dump(best_overall_model, temp_file)
         
         # If successful, replace the target file
         # Remove existing file if it exists
@@ -930,9 +930,9 @@ except OSError as e:
     if e.errno == 28:  # ENOSPC - No space left on device
         print("Disk is full. Please free up space and try again.")
     raise
-except pickle.PicklingError as e:
-    print(f"ERROR: Failed to pickle the model: {e}")
-    print("The model may contain unpicklable objects.")
+except joblib.JoblibException as e:
+    print(f"ERROR: Failed to serialize the model with joblib: {e}")
+    print("The model may contain objects that joblib cannot serialize.")
     raise
 except Exception as e:
     print(f"ERROR: Unexpected error while saving model: {e}")
