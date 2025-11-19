@@ -870,22 +870,22 @@ x_train.columns
 # In[68]:
 
 
-import pickle
+import joblib
 import os
 import tempfile
 
 # Save the best overall model with comprehensive error handling
-pickle_filename = 'predictor.pickle'
+pickle_filename = 'predictor.joblib'
 temp_filename = None
 
 try:
     # Create a temporary file first to avoid corrupting existing file
-    temp_fd, temp_filename = tempfile.mkstemp(suffix='.pickle', dir='.')
+    temp_fd, temp_filename = tempfile.mkstemp(suffix='.joblib', dir='.')
     
     try:
         # Write to temporary file
         with os.fdopen(temp_fd, 'wb') as temp_file:
-            pickle.dump(best_overall_model, temp_file)
+            joblib.dump(best_overall_model, temp_file)
         
         # If successful, replace the target file
         # Remove existing file if it exists
