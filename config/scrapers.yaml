@@ -1,0 +1,139 @@
+# Web Scraper Configuration
+# This file defines global scraper settings and site-specific configurations
+# for extracting laptop pricing data from e-commerce websites.
+
+global:
+  # HTTP request settings
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  request_timeout: 30
+  retry_attempts: 3
+  delay_between_requests: 2.0
+  respect_robots_txt: true
+  
+  # Data quality settings
+  min_price: 100
+  max_price: 10000
+  
+  # Logging
+  log_level: "INFO"
+  log_requests: true
+
+# Site-specific configurations
+sites:
+  # Example Site 1: Amazon Laptops
+  amazon:
+    enabled: true
+    base_url: "https://www.amazon.com"
+    search_url: "https://www.amazon.com/s?k=laptops&ref=nb_sb_noss"
+    
+    # CSS selectors for extracting laptop data
+    selectors:
+      # Brand/manufacturer
+      company: "span.a-size-base-plus.a-color-base.a-text-normal"
+      
+      # Product name/model
+      product: "h2.a-size-mini.a-spacing-none.a-color-base.s-line-clamp-4 span"
+      
+      # Laptop type (Notebook, Gaming, Ultrabook, etc.)
+      type_name: "span.a-size-base.a-color-secondary"
+      
+      # Screen size in inches
+      inches: "span.a-size-base[data-attribute='screen_size']"
+      
+      # Screen resolution (e.g., 1920x1080, 4K, Full HD)
+      screen_resolution: "span.a-size-base[data-attribute='display_resolution']"
+      
+      # CPU/Processor information
+      cpu: "span.a-size-base[data-attribute='processor']"
+      
+      # RAM amount
+      ram: "span.a-size-base[data-attribute='ram']"
+      
+      # Storage/Memory (HDD/SSD)
+      memory: "span.a-size-base[data-attribute='storage']"
+      
+      # GPU/Graphics card
+      gpu: "span.a-size-base[data-attribute='graphics']"
+      
+      # Operating system
+      os: "span.a-size-base[data-attribute='operating_system']"
+      
+      # Weight
+      weight: "span.a-size-base[data-attribute='weight']"
+      
+      # Price
+      price: "span.a-price-whole"
+      
+      # Product container for pagination
+      product_container: "div[data-component-type='s-search-result']"
+    
+    # Request delays for this site
+    delays:
+      request_delay: 2.0
+      page_delay: 5.0
+      
+    # Pagination settings
+    pagination:
+      enabled: true
+      max_pages: 10
+      next_button_selector: "a.s-pagination-next"
+  
+  # Example Site 2: Newegg
+  newegg:
+    enabled: true
+    base_url: "https://www.newegg.com"
+    search_url: "https://www.newegg.com/Laptops-Notebooks/SubCategory/ID-32"
+    
+    selectors:
+      company: "a.item-brand img[alt]"
+      product: "a.item-title"
+      type_name: "span.item-features li:nth-child(1)"
+      inches: "span.item-features li:contains('\"')"
+      screen_resolution: "span.item-features li:contains('x')"
+      cpu: "span.item-features li:contains('Intel Core'):contains('AMD Ryzen')"
+      ram: "span.item-features li:contains('GB'):contains('RAM')"
+      memory: "span.item-features li:contains('SSD'):contains('HDD')"
+      gpu: "span.item-features li:contains('GeForce'):contains('Radeon')"
+      os: "span.item-features li:contains('Windows'):contains('Linux')"
+      weight: "span.item-features li:contains('lbs'):contains('kg')"
+      price: "li.price-current strong"
+      product_container: "div.item-cell"
+    
+    delays:
+      request_delay: 3.0
+      page_delay: 6.0
+      
+    pagination:
+      enabled: true
+      max_pages: 15
+      next_button_selector: "button.list-tool-pagination-next"
+  
+  # Example Site 3: Best Buy
+  bestbuy:
+    enabled: false  # Disabled by default
+    base_url: "https://www.bestbuy.com"
+    search_url: "https://www.bestbuy.com/site/searchpage.jsp?st=laptops"
+    
+    selectors:
+      company: "h4.sku-title a"
+      product: "h4.sku-title"
+      type_name: "div.sku-model span:nth-child(1)"
+      inches: "div.sku-attribute[data-attribute='screenSize']"
+      screen_resolution: "div.sku-attribute[data-attribute='resolution']"
+      cpu: "div.sku-attribute[data-attribute='processor']"
+      ram: "div.sku-attribute[data-attribute='systemMemory']"
+      memory: "div.sku-attribute[data-attribute='hardDrive']"
+      gpu: "div.sku-attribute[data-attribute='graphics']"
+      os: "div.sku-attribute[data-attribute='operatingSystem']"
+      weight: "div.sku-attribute[data-attribute='productWeight']"
+      price: "div.priceView-customer-price span[aria-hidden='true']"
+      product_container: "li.sku-item"
+    
+    delays:
+      request_delay: 2.5
+      page_delay: 5.0
+      
+    pagination:
+      enabled: true
+      max_pages: 20
+      next_button_selector: "a.sku-list-page-next"

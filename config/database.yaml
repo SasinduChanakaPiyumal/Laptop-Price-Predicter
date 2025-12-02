@@ -1,0 +1,144 @@
+# Database and Storage Configuration
+# This file defines settings for data persistence, including CSV and SQLite storage options.
+
+storage:
+  # CSV file storage configuration
+  csv:
+    # Path to the CSV file (relative to project root)
+    path: "data/laptop_price.csv"
+    
+    # Encoding format - matches the existing dataset
+    encoding: "latin-1"
+    
+    # Backup settings
+    backup_enabled: true
+    backup_path: "data/backups/"
+    backup_retention_days: 30
+    
+    # CSV format options
+    delimiter: ","
+    quotechar: "\""
+    
+    # Column names for the laptop dataset (in order)
+    columns:
+      - "Company"
+      - "Product"
+      - "TypeName"
+      - "Inches"
+      - "ScreenResolution"
+      - "Cpu"
+      - "Ram"
+      - "Memory"
+      - "Gpu"
+      - "OpSys"
+      - "Weight"
+      - "Price_euros"
+    
+    # Data type hints for optimal loading
+    dtypes:
+      Company: "category"
+      TypeName: "category"
+      OpSys: "category"
+      Ram: "object"  # Cleaned to int later
+      Weight: "object"  # Cleaned to float later
+      Price_euros: "float32"
+    
+    # Write options
+    write_mode: "append"  # or "overwrite"
+    include_header: true
+    index: false
+  
+  # SQLite database configuration
+  sqlite:
+    # Path to the SQLite database file
+    path: "data/laptops.db"
+    
+    # Backup settings
+    backup_enabled: true
+    backup_path: "data/backups/"
+    backup_frequency: "daily"  # daily, weekly, monthly
+    backup_retention_days: 90
+    
+    # Connection settings
+    timeout: 30.0
+    check_same_thread: false
+    
+    # Performance tuning
+    journal_mode: "WAL"  # Write-Ahead Logging for better concurrency
+    synchronous: "NORMAL"
+    cache_size: -64000  # Negative means KB (64MB cache)
+    
+    # Table definitions
+    tables:
+      laptops:
+        name: "laptops"
+        primary_key: "id"
+        
+        # Schema definition
+        schema:
+          id: "INTEGER PRIMARY KEY AUTOINCREMENT"
+          company: "TEXT NOT NULL"
+          product: "TEXT NOT NULL"
+          type_name: "TEXT"
+          inches: "REAL"
+          screen_resolution: "TEXT"
+          cpu: "TEXT"
+          ram: "INTEGER"
+          memory: "TEXT"
+          gpu: "TEXT"
+          os: "TEXT"
+          weight: "REAL"
+          price_euros: "REAL NOT NULL"
+          source_site: "TEXT"
+          scraped_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+        
+        # Indexes for faster queries
+        indexes:
+          - "CREATE INDEX IF NOT EXISTS idx_company ON laptops(company)"
+          - "CREATE INDEX IF NOT EXISTS idx_price ON laptops(price_euros)"
+          - "CREATE INDEX IF NOT EXISTS idx_scraped_at ON laptops(scraped_at)"
+          - "CREATE INDEX IF NOT EXISTS idx_source_site ON laptops(source_site)"
+      
+      scrape_logs:
+        name: "scrape_logs"
+        primary_key: "log_id"
+        
+        schema:
+          log_id: "INTEGER PRIMARY KEY AUTOINCREMENT"
+          site_name: "TEXT NOT NULL"
+          start_time: "TIMESTAMP"
+          end_time: "TIMESTAMP"
+          records_scraped: "INTEGER"
+          status: "TEXT"
+          error_message: "TEXT"
+        
+        indexes:
+          - "CREATE INDEX IF NOT EXISTS idx_site_time ON scrape_logs(site_name, start_time)"
+
+# Data validation rules
+validation:
+  # Price range validation (in euros)
+  price_range:
+    min: 100
+    max: 10000
+  
+  # RAM validation (in GB)
+  ram_range:
+    min: 2
+    max: 128
+  
+  # Screen size validation (in inches)
+  inches_range:
+    min: 10.0
+    max: 18.0
+  
+  # Weight validation (in kg)
+  weight_range:
+    min: 0.5
+    max: 5.0
+  
+  # Required fields (must not be null/empty)
+  required_fields:
+    - "Company"
+    - "Product"
+    - "Price_euros"
