@@ -52,5 +52,9 @@ env/
 # Uncomment if needed:
 # *.csv
 
+# Web scraping outputs and logs
+data/
+logs/
+
 # pip-tools
 *.txt.bak
