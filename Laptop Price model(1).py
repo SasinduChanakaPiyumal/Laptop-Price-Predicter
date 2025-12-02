@@ -286,8 +286,10 @@ dataset.loc[~dataset['OpSys'].isin(valid_os), 'OpSys'] = 'Other'
 
 # In[37]:
 
-
-dataset=dataset.drop(columns=['laptop_ID','Inches','Product','ScreenResolution','Cpu','Gpu'])
+# BUG FIX: Removed premature column drop that was causing KeyError at line 485
+# and was dropping 'Inches' which is needed later for interaction features (line 532-533).
+# All column dropping is now handled at line 485 after all feature extraction is complete.
+# dataset=dataset.drop(columns=['laptop_ID','Inches','Product','ScreenResolution','Cpu','Gpu'])
 
 
 # In[38]:
