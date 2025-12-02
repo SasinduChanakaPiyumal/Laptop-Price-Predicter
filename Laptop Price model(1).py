@@ -428,33 +428,8 @@ best_model.predict([[8,0.9,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0
 # In[31]:
 
 # PERFORMANCE: Optimized storage feature extraction with vectorized operations
-@timer
-def extract_storage_features_vectorized(dataset):
-    """
-    Extract storage features using vectorized operations for better performance.
-    ~5-10x faster than using .apply() with a custom function.
-    """
-    # Use vectorized string operations for storage type detection
-    dataset['Has_SSD'] = dataset['Memory'].str.contains('SSD', case=False, regex=False).astype('int8')
-    dataset['Has_HDD'] = dataset['Memory'].str.contains('HDD', case=False, regex=False).astype('int8')
-    dataset['Has_Flash'] = dataset['Memory'].str.contains('Flash', case=False, regex=False).astype('int8')
-    dataset['Has_Hybrid'] = dataset['Memory'].str.contains('Hybrid', case=False, regex=False).astype('int8')
-    
-    # Extract storage capacity using vectorized regex
-    # Pattern: one or more digits optionally followed by decimal and digits, then TB or GB
-    
-    # Extract all TB values and convert to GB
-    tb_matches = dataset['Memory'].str.findall(r'(\d+(?:\.\d+)?)\s*TB')
-    tb_capacity = tb_matches.apply(lambda x: sum([float(i) * 1024 for i in x]) if x else 0)
-    
-    # Extract all GB values
-    gb_matches = dataset['Memory'].str.findall(r'(\d+(?:\.\d+)?)\s*GB')
-    gb_capacity = gb_matches.apply(lambda x: sum([float(i) for i in x]) if x else 0)
-    
-    # Total capacity in GB
-    dataset['Storage_Capacity_GB'] = (tb_capacity + gb_capacity).astype('float32')
-    
-    return dataset
+# Moved implementation to utils_features for reuse (e.g., in benchmarks)
+from utils_features import extract_storage_features_vectorized
 
 dataset = extract_storage_features_vectorized(dataset)
 
