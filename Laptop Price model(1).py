@@ -567,7 +567,8 @@ print(f"Advanced interaction features created. Total features: {x.shape[1]}")
 # In[50]:
 
 
-pip install scikit-learn
+# pip install scikit-learn  # NOTE: Not valid Python syntax (Jupyter magic).
+# scikit-learn is already guarded at lines 323-326 with a try/except ImportError.
 
 
 # In[51]:

@@ -167,6 +167,53 @@ class TestLaptopModelColumnDropBug(unittest.TestCase):
         self.assertIn('Total_Pixels', dataset.columns)
 
 
+class TestMainFileSyntax(unittest.TestCase):
+    """
+    Test that 'Laptop Price model(1).py' is valid, parseable Python.
+
+    BUG: Line 570 contained the raw Jupyter magic command::
+
+        pip install scikit-learn
+
+    Two bare identifiers adjacent to each other (``pip install``) is a
+    ``SyntaxError`` in Python 3.  Python parses the *entire* source file
+    before executing a single line, so this error prevents the script from
+    ever running, even though the intended logic (train an ML model) is
+    otherwise sound.
+
+    BEFORE THE PATCH
+        ``ast.parse`` raises ``SyntaxError`` → the assertion in this test
+        fails, correctly flagging the broken file.
+
+    AFTER THE PATCH
+        The invalid line is commented out; ``ast.parse`` succeeds → the test
+        passes, confirming the file is well-formed Python.
+    """
+
+    MAIN_FILE = "Laptop Price model(1).py"
+
+    def test_main_file_is_valid_python(self):
+        """
+        Parse the main script with ``ast.parse``; fail if a SyntaxError is
+        raised (indicating the ``pip install scikit-learn`` bug is still
+        present).
+        """
+        import ast
+
+        with open(self.MAIN_FILE, "r", encoding="utf-8") as fh:
+            source = fh.read()
+
+        try:
+            ast.parse(source)
+        except SyntaxError as exc:
+            self.fail(
+                f"'{self.MAIN_FILE}' contains invalid Python syntax: {exc}\n"
+                "Likely cause: a bare 'pip install …' line left over from a "
+                "Jupyter notebook conversion.  Comment it out or replace it "
+                "with a proper import guard."
+            )
+
+
 if __name__ == '__main__':
     print("="*70)
     print("UNIT TEST FOR LAPTOP MODEL BUG FIX")
@@ -176,9 +223,14 @@ if __name__ == '__main__':
     print("  This causes two problems:")
     print("  1. Line 485 tries to drop the same columns again -> KeyError")
     print("  2. 'Inches' column is dropped but needed later for interaction features")
+    print("\nAdditional Bug (NEW):")
+    print("  Line 570 contains 'pip install scikit-learn' — a raw Jupyter magic")
+    print("  command that is not valid Python 3 syntax.  It causes a SyntaxError")
+    print("  when the file is parsed, preventing any execution.")
     print("\nFix:")
     print("  Line 290 has been commented out to prevent premature column dropping.")
-    print("  All columns are now dropped at line 485 after feature extraction is complete.")
+    print("  Line 570 'pip install scikit-learn' has been commented out; a proper")
+    print("  import guard already exists at lines 323-326.")
     print("\nTest Results:")
     print("-"*70)
     
