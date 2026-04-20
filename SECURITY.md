@@ -12,20 +12,27 @@ This document tracks security practices, vulnerability scanning results, risk ac
 
 ### Dependency Vulnerability Scanning
 
-**Tool:** `pip-audit`
+Tools:
+- `pip-audit` (local and pre-commit)
+- `Dependabot` (CI/CD monitoring via GitHub)
 
-**Frequency:** Before each commit, during pre-commit hooks, and at least monthly.
+Frequency:
+- Local: before each commit (pre-commit hook) and at least monthly.
+- CI/CD: Dependabot runs weekly and on manifest changes.
 
-**Procedure:**
+Local Procedure (pip-audit):
 ```bash
 # Ensure virtual environment is active
-source .venv/bin/activate  # or `.venv\Scripts\activate` on Windows
+source .venv/bin/activate  # or `.venv\\Scripts\\activate` on Windows
 
-# Install pip-audit if not present
-pip install pip-audit
+# Install dev tools
+pip install -r requirements-dev.txt
 
-# Run scan
-pip-audit -r requirements.txt
+# Run scan against locked dependencies
+pip-audit -r requirements.txt --strict --format json --output reports/pip-audit.json
+
+# Optional: SARIF for code scanning UIs
+pip-audit -r requirements.txt --format sarif --output reports/pip-audit.sarif
 
 # If vulnerabilities found, upgrade dependencies:
 # 1. Update version pins in requirements.in
@@ -33,6 +40,18 @@ pip-audit -r requirements.txt
 # 3. Sync environment: pip-sync requirements.txt
 # 4. Re-run pip-audit until resolved or explicitly accepted
 ```
+
+Interpreting pip-audit reports:
+- Severity: critical/high/medium/low (based on CVSS)
+- Affected package and version
+- Fixed version (if available) and remediation suggestion (upgrade to >= fixed)
+- CVE/Advisory IDs with links for details
+
+CI/CD Monitoring (Dependabot):
+- Configuration: see `.github/dependabot.yml`.
+- Dependabot opens PRs for vulnerable/outdated dependencies and GitHub Actions.
+- Review PR description for vulnerability details and suggested version bumps.
+- Merge PRs after tests pass; re-run local `pip-audit` to verify.
 
 ### Secret Scanning
 

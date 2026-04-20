@@ -1,6 +1,10 @@
 # Security scan outputs - never commit these
 gitleaks.sarif
 *.sarif
+# pip-audit reports
+reports/
+pip-audit.json
+pip-audit.sarif
 
 # Python artifacts
 __pycache__/

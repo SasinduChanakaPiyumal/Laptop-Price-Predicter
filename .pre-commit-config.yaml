@@ -1,0 +1,17 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: local
+    hooks:
+      - id: pip-audit
+        name: pip-audit (requirements.txt)
+        entry: bash -c 'pip-audit -r requirements.txt --progress-spinner=off --strict --format json --output reports/pip-audit.json || (echo "pip-audit found vulnerabilities. See reports/pip-audit.json" >&2; exit 1)'
+        language: system
+        pass_filenames: false
+        stages: [commit]
+        additional_dependencies: []
