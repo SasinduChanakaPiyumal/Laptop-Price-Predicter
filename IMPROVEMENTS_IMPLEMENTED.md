@@ -152,7 +152,12 @@ LGBMRegressor(n_estimators=100, random_state=42, verbose=-1)
 ## 5. Outlier Detection and Reporting ✨ NEW
 
 ### 5.1 Implementation
-**Method:** Z-score based outlier detection (threshold = 3)
+**Method:** Z-score based outlier detection with configurable threshold
+
+**Configurable Parameter:** `Z_SCORE_THRESHOLD` (default = 3)
+- Defined as a tunable parameter rather than a hardcoded value
+- Can be adjusted based on data characteristics, cross-validation, or domain knowledge
+- Common values: 2.5 (strict), 3 (standard), 3.5 (lenient)
 
 **Features Analyzed:**
 - Target variable (Price_euros)
@@ -170,6 +175,8 @@ Storage_Capacity_GB outliers: 12
 - Outliers often represent legitimate premium/budget laptops
 - Tree-based models handle outliers well without removal
 - Removing them could lose valuable information about price extremes
+
+**Improvement:** Threshold is now parameterized for better maintainability and experimentation
 
 ---
 
