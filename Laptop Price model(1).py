@@ -484,7 +484,8 @@ print(f"   Sample storage features:")
 print(dataset[['Memory', 'Has_SSD', 'Has_HDD', 'Storage_Capacity_GB']].head(3))
 
 # Drop columns that have been fully extracted
-dataset = dataset.drop(columns=['laptop_ID', 'Product', 'ScreenResolution', 'Cpu', 'Gpu', 'Memory'])
+# Note: laptop_ID, Product, ScreenResolution, Cpu, Gpu were already dropped earlier
+dataset = dataset.drop(columns=['Memory'])
 
 
 # In[38]:
